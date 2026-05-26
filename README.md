@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-1.1.0-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -40,6 +40,8 @@ Research → Write → Integrity Check → Peer Review → Revise → Finalize
 | ⭐ | **Peer Review** | 5-perspective review with 0–100 quality scoring |
 | 🔁 | **Full System** | End-to-end pipeline: research → write → review → revise → finalize |
 | 📄 | **DOCX & PDF Export** | LaTeX-quality academic formatting, content untouched |
+| 💬 | **Live Streaming** | Real-time token streaming, live token counter |
+| 💾 | **Local Memory** | Conversations saved to `Chats/` folder, persistent across sessions |
 | 🇹🇷 | **Turkish UI** | Fully Turkish interface |
 
 ---
@@ -118,6 +120,27 @@ Academic skill files are **auto-updated** every time you launch.
 | OS | macOS 12+ | Windows 10/11 |
 | Auto-installed | Homebrew, Node.js, Claude Code | Chocolatey, Node.js, Claude Code |
 | Account | Claude Pro / Max | Claude Pro / Max |
+
+---
+
+## Changelog
+
+### v1.1.0
+- **Real-time streaming** — tokens appear as they are generated
+- **Live token counter** — visible in the top bar during generation
+- **WebSocket stability** — heartbeat system, auto-reconnect, session rejoin on disconnect
+- **Local memory** — conversations saved to `Chats/` folder, reload on app restart
+- **Chat management** — rename, delete with confirmation popup
+- **AI-generated chat titles** — automatic 3–5 word title per conversation
+- **WS status indicator** — green / yellow / red connection state
+- **PDF improvements** — broader Chrome path detection for all users
+
+### v1.0.0
+- Initial release
+- Claude Code multi-agent pipeline integration
+- DOCX & PDF export with LaTeX formatting
+- Turkish web interface
+- macOS & Windows support
 
 ---
 
