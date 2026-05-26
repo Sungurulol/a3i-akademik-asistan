@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A³I — Akademik Asistan AI</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIiBmaWxsPSJub25lIj4KICA8cGF0aCBkPSJNOTAgMTggTDE2OCAxNjIgSDEzMiBMOTAgODQgTDQ4IDE2MiBIMTIgWiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNOTAgNjAgTDEzOCAxNDggSDExOCBMOTAgOTYgTDYyIDE0OCBINDIgWiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNOTAgMTAwIEwxMTYgMTQ0IEgxMDIgTDkwIDEyMiBMNzggMTQ0IEg2NCBaIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:      #1c1c1e;
+  --bg2:     #232325;
+  --bg3:     #2c2c2e;
+  --bg4:     #3a3a3c;
+  --border:  #38383a;
+  --border2: #48484a;
+  --text:    #f2f2f7;
+  --text2:   #aeaeb2;
+  --text3:   #636366;
+  --accent:  #7fb8dd;
+  --accent2: #5fa3d0;
+  --accent-t:#a8d0ea;
+  --accent-bg:rgba(127,184,221,.14);
+  --green:   #30d158;
+  --radius:  12px;
+  --font:    -apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
+.layout{display:flex;height:100vh}
+
+/* ── Sidebar ── */
+.sidebar{width:240px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+
+.sidebar-header{padding:20px 16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px}
+.logo-mark{width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-mark svg{width:34px;height:34px;display:block}
+.logo-mark svg path{transition:stroke .25s ease}
+.sidebar-header:hover .logo-mark svg .peak-mid{stroke:var(--accent-t)}
+.sidebar-header:hover .logo-mark svg .peak-inner{stroke:var(--accent-t)}
+.logo-text{line-height:1.2}
+.logo-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em;display:flex;align-items:baseline;gap:0}
+.logo-title .sup{font-size:8px;font-weight:600;vertical-align:super;color:var(--text2);margin:0 .5px 0 .5px;position:relative;top:-3px}
+.logo-sub{font-size:9.5px;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;margin-top:2px;font-family:'SF Mono','Menlo',monospace}
+
+.new-chat-btn{margin:12px 10px;padding:8px 12px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s;font-family:var(--font)}
+.new-chat-btn:hover{background:var(--bg3);color:var(--text)}
+.new-chat-btn svg{width:15px;height:15px;stroke:currentColor;flex-shrink:0}
+
+.nav-section{padding:4px 10px 0}
+.nav-label{font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;padding:8px 6px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;cursor:pointer;transition:background .12s;margin-bottom:1px;user-select:none}
+.nav-item:hover{background:var(--bg3)}
+.nav-item.active{background:var(--bg3)}
+.nav-item svg{width:15px;height:15px;stroke:var(--text3);flex-shrink:0;stroke-width:1.6}
+.nav-item.active svg{stroke:var(--accent-t)}
+.nav-item span{font-size:13px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-item.active span{color:var(--text)}
+
+/* Sohbet geçmişi */
+.history-section{padding:4px 10px 0;flex:1;overflow:hidden;display:flex;flex-direction:column}
+.history-list{overflow-y:auto;flex:1}
+.history-list::-webkit-scrollbar{width:3px}
+.history-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.history-group-label{font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;padding:10px 6px 4px}
+.history-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;transition:background .12s;margin-bottom:1px;group:hover}
+.history-item:hover{background:var(--bg3)}
+.history-item.active-chat{background:var(--bg3)}
+.history-item svg{width:14px;height:14px;stroke:var(--text3);flex-shrink:0;stroke-width:1.5}
+.history-item span{font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-item.active-chat span{color:var(--text2)}
+.del-btn{background:transparent;border:none;cursor:pointer;padding:3px;border-radius:4px;color:var(--text3);display:flex;align-items:center;opacity:0;transition:opacity .15s}
+.history-item:hover .del-btn{opacity:1}
+.del-btn:hover{color:var(--text2);background:var(--bg4)}
+
+.sidebar-bottom{padding:10px;border-top:1px solid var(--border)}
+.status-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s}
+.status-dot.active{background:#22c55e}
+.status-dot.connecting{background:#eab308;animation:pulse 1s ease-in-out infinite}
+.status-dot.disconnected{background:#ef4444}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.status-text{font-size:12px;color:var(--text3)}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+
+.topbar{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.mode-badge{font-size:12px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 12px}
+.topbar-actions{display:flex;gap:6px}
+.icon-btn{width:32px;height:32px;border-radius:8px;background:transparent;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s}
+.icon-btn:hover{background:var(--bg3)}
+.icon-btn svg{width:15px;height:15px;stroke:var(--text3)}
+
+/* ── Sohbet ── */
+.chat-area{flex:1;overflow-y:auto;padding:0;display:flex;flex-direction:column;scroll-behavior:smooth}
+.chat-area::-webkit-scrollbar{width:4px}
+.chat-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* Boş durum */
+.empty-state{flex:1}
+
+/* Mesajlar */
+.msg-group{padding:24px 20px 0;display:flex;flex-direction:column;gap:2px}
+.msg-group:last-child{padding-bottom:24px}
+.msg-role{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:.04em;margin-bottom:6px;text-transform:uppercase;display:flex;align-items:center;min-height:18px}
+.msg-role.msg-role-logo{color:var(--text2)}
+.msg-role.msg-role-logo svg{display:block;width:18px;height:18px}
+.msg-content{font-size:19px;line-height:1.7;color:var(--text)}
+.msg-user .msg-content{color:var(--text2)}
+
+/* Markdown render */
+.msg-content h1,.msg-content h2,.msg-content h3,.msg-content h4{color:var(--text);font-weight:600;margin:1em 0 .4em;line-height:1.3}
+.msg-content h1{font-size:1.4em}.msg-content h2{font-size:1.2em}.msg-content h3{font-size:1.05em}
+.msg-content p{margin:.5em 0}
+.msg-content p:first-child{margin-top:0}
+.msg-content p:last-child{margin-bottom:0}
+.msg-content strong{font-weight:600;color:var(--text)}
+.msg-content em{font-style:italic;color:var(--text2)}
+.msg-content ul,.msg-content ol{padding-left:1.4em;margin:.4em 0}
+.msg-content li{margin:.2em 0}
+.msg-content table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:18px}
+.msg-content th{background:var(--bg3);padding:8px 12px;text-align:left;font-weight:500;border:1px solid var(--border2);color:var(--text)}
+.msg-content td{padding:7px 12px;border:1px solid var(--border);color:var(--text2)}
+.msg-content code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:16px;font-family:'SF Mono','Fira Code',monospace;color:var(--accent-t)}
+.msg-content pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto;margin:.6em 0}
+.msg-content pre code{background:none;padding:0;font-size:16px;color:var(--text2)}
+.msg-content blockquote{border-left:3px solid var(--accent);padding-left:12px;margin:.6em 0;color:var(--text2)}
+.msg-content hr{border:none;border-top:1px solid var(--border);margin:1em 0}
+.msg-content a{color:var(--accent-t);text-decoration:none}.msg-content a:hover{text-decoration:underline}
+
+/* Eylemler */
+.msg-actions{display:flex;gap:4px;margin-top:8px;opacity:0;transition:opacity .15s}
+.msg-group:hover .msg-actions{opacity:1}
+.action-btn{display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:6px;border:none;background:transparent;color:var(--text3);font-size:11px;cursor:pointer;transition:all .12s;font-family:var(--font)}
+.action-btn:hover{background:var(--bg3);color:var(--text2)}
+.action-btn svg{width:13px;height:13px;stroke:currentColor}
+.action-btn.copied{color:var(--green)}
+
+/* Divider */
+.msg-divider{height:1px;background:rgba(127,184,221,.10);margin:24px 20px 0}
+
+/* Typing cursor */
+.cursor{display:inline-block;width:2px;height:14px;background:var(--accent-t);margin-left:2px;vertical-align:middle;animation:blink 1s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dl-btn svg{transition:none}
+
+/* ── Input ── */
+.input-area{padding:12px 16px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.mode-chips{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.chip{font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);color:var(--text3);cursor:pointer;background:transparent;transition:all .12s;white-space:nowrap;font-family:var(--font)}
+.chip:hover{border-color:var(--border2);color:var(--text2)}
+.chip.sel{border-color:var(--accent);color:var(--accent-t);background:var(--accent-bg)}
+.input-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;transition:border-color .15s}
+.input-box:focus-within{border-color:var(--accent)}
+.input-row{display:flex;gap:8px;align-items:center}
+textarea{flex:1;background:transparent;border:none;outline:none;resize:none;font-size:19px;color:var(--text);font-family:var(--font);line-height:1.5;min-height:22px;max-height:140px;padding:6px 0;display:block}
+textarea::placeholder{color:var(--text3)}
+.send-btn{width:34px;height:34px;border-radius:9px;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .12s}
+.send-btn:hover{background:var(--accent2)}
+.send-btn:disabled{opacity:.35;cursor:not-allowed}
+.send-btn svg{width:16px;height:16px;stroke:#0a1620;stroke-width:2.2}
+.stop-btn{width:34px;height:34px;border-radius:9px;background:var(--bg3);border:1px solid var(--border2);display:none;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.stop-btn.visible{display:flex}
+.stop-btn svg{width:13px;height:13px;stroke:var(--text2)}
+.attach-btn{width:32px;height:32px;border-radius:8px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .12s}
+.attach-btn:hover{background:var(--bg3)}
+.attach-btn svg{width:17px;height:17px;stroke:var(--text3)}
+.file-preview{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.file-chip{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text2);max-width:180px}
+.file-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-chip button{background:none;border:none;cursor:pointer;color:var(--text3);padding:0;display:flex;line-height:1}
+.file-chip button:hover{color:var(--text2)}
+
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:10px 18px;border-radius:10px;font-size:12px;display:none;z-index:100;white-space:nowrap}
+.toast.visible{display:block}
+
+.token-bar{display:none;align-items:center;gap:10px;padding:5px 16px;background:rgba(59,130,246,.1);border-bottom:1px solid rgba(59,130,246,.25);font-size:12px;color:#60a5fa}
+.token-bar.visible{display:flex}
+.token-dot{width:6px;height:6px;border-radius:50%;background:#3b82f6;animation:pulse 1s ease-in-out infinite;flex-shrink:0}
+.token-count{font-weight:500;color:#93c5fd}
+
+.popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:200}
+.popup-overlay.visible{display:flex}
+.popup{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:24px;width:320px}
+.popup h3{font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px}
+.popup p{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5}
+.popup-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-size:14px;color:var(--text);font-family:var(--font);outline:none;margin-bottom:16px;box-sizing:border-box}
+.popup-input:focus{border-color:var(--accent)}
+.popup-btns{display:flex;gap:10px}
+.popup-btn{flex:1;padding:9px;border-radius:9px;font-size:13px;cursor:pointer;font-family:var(--font);border:1px solid var(--border2);transition:all .12s}
+.popup-cancel{background:var(--bg3);color:var(--text2)}.popup-cancel:hover{background:var(--bg4)}
+.popup-danger{background:#ef4444;color:#fff;border-color:#ef4444}.popup-danger:hover{opacity:.85}
+.popup-confirm{background:var(--accent);color:#0a1620;border-color:var(--accent)}.popup-confirm:hover{background:var(--accent2)}
+.hist-btn{background:transparent;border:none;cursor:pointer;padding:3px;border-radius:4px;color:var(--text3);display:flex;align-items:center;opacity:0;transition:opacity .15s;flex-shrink:0}
+.history-item:hover .hist-btn{opacity:1}
+.hist-btn:hover{color:var(--text2);background:var(--bg4)}
+.hist-btn.danger:hover{color:#ef4444;background:rgba(239,68,68,.1)}
+
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-mark" aria-label="A³I">
+        <svg viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path class="peak-outer" d="M90 18 L168 162 H132 L90 84 L48 162 H12 Z" stroke="#f2f2f7" stroke-width="8" stroke-linejoin="round"/>
+          <path class="peak-mid"   d="M90 60 L138 148 H118 L90 96 L62 148 H42 Z"  stroke="#f2f2f7" stroke-width="8" stroke-linejoin="round"/>
+          <path class="peak-inner" d="M90 100 L116 144 H102 L90 122 L78 144 H64 Z" stroke="#f2f2f7" stroke-width="8" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <div class="logo-title">A<span class="sup">3</span>I <span style="color:var(--text3);font-weight:400;margin:0 4px">·</span> Akademik Asistan</div>
+        <div class="logo-sub">Claude Code</div>
+      </div>
+    </div>
+
+    <button class="new-chat-btn" onclick="newChat()">
+      <svg fill="none" stroke-width="1.8" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Yeni sohbet
+    </button>
+
+    <div class="history-section">
+      <div class="nav-label">Geçmiş</div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="status-row">
+        <div class="status-dot" id="status-dot"></div>
+        <span class="status-text" id="status-text">Bağlanıyor...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="token-bar" id="token-bar">
+      <div class="token-dot"></div>
+      <span>Yanıt üretiliyor</span>
+      <span class="token-count" id="token-count">0 token</span>
+    </div>
+    <div class="topbar">
+      <div class="mode-badge" id="mode-badge">Mod seçilmedi</div>
+    </div>
+
+    <div class="chat-area" id="chat-area">
+      <div class="empty-state" id="empty-state"></div>
+    </div>
+
+    <div class="input-area">
+      <div class="mode-chips">
+        <div class="chip" data-mode="arastirma" onclick="selectChip('arastirma',this)">Araştırma</div>
+        <div class="chip" data-mode="makale" onclick="selectChip('makale',this)">Makale yaz</div>
+        <div class="chip" data-mode="plan" onclick="selectChip('plan',this)">Planla</div>
+        <div class="chip" data-mode="hakem" onclick="selectChip('hakem',this)">Hakem incele</div>
+        <div class="chip" data-mode="pipeline" onclick="selectChip('pipeline',this)">Tam Sistem</div>
+      </div>
+      <div id="file-preview" class="file-preview"></div>
+    <div class="input-box">
+        <input type="file" id="file-input" multiple accept=".pdf,.doc,.docx,.txt,.md" style="display:none" onchange="handleFiles(this.files)">
+        <div class="input-row">
+          <button class="attach-btn" onclick="document.getElementById('file-input').click()" title="Dosya ekle">
+            <svg fill="none" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <textarea id="input" placeholder="Bir konu yazın veya yönlendirin..." rows="1"
+            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="send-btn" onclick="sendMessage()">
+            <svg fill="none" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+          </button>
+          <button class="stop-btn" id="stop-btn" onclick="stopGeneration()">
+            <svg fill="none" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="popup-overlay" id="delete-popup">
+  <div class="popup">
+    <h3>Sohbeti sil</h3>
+    <p id="delete-popup-text">Bu sohbet kalıcı olarak silinecek. Emin misiniz?</p>
+    <div class="popup-btns">
+      <button class="popup-btn popup-cancel" onclick="closeDeletePopup()">Vazgeç</button>
+      <button class="popup-btn popup-danger" onclick="confirmDeleteSession()">Sil</button>
+    </div>
+  </div>
+</div>
+
+<div class="popup-overlay" id="rename-popup">
+  <div class="popup">
+    <h3>Sohbeti yeniden adlandır</h3>
+    <input type="text" id="rename-input" class="popup-input" placeholder="Yeni isim..."
+      onkeydown="if(event.key==='Enter') confirmRenameSession()">
+    <div class="popup-btns">
+      <button class="popup-btn popup-cancel" onclick="closeRenamePopup()">Vazgeç</button>
+      <button class="popup-btn popup-confirm" onclick="confirmRenameSession()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Marked renderer — düzgün HTML
+const renderer = new marked.Renderer();
+renderer.heading = (text, level) => `<h${level}>${text}</h${level}>`;
+renderer.strong = (text) => `<strong>${text}</strong>`;
+renderer.em = (text) => `<em>${text}</em>`;
+renderer.hr = () => '<hr>';
+renderer.blockquote = (text) => `<blockquote>${text}</blockquote>`;
+renderer.code = (code, lang) => {
+  const highlighted = (lang && hljs.getLanguage(lang))
+    ? hljs.highlight(code, { language: lang }).value
+    : hljs.highlightAuto(code).value;
+  return `<pre><code class="hljs">${highlighted}</code></pre>`;
+};
+marked.setOptions({ renderer, breaks: true, gfm: true });
+
+// Asistan role işareti — üçlü çatı SVG (currentColor)
+const PEAKS_ICON_SVG = `<svg viewBox="0 0 180 180" fill="none" aria-label="A³I"><path d="M90 18 L168 162 H132 L90 84 L48 162 H12 Z" stroke="currentColor" stroke-width="14" stroke-linejoin="round"/><path d="M90 60 L138 148 H118 L90 96 L62 148 H42 Z" stroke="currentColor" stroke-width="14" stroke-linejoin="round"/><path d="M90 100 L116 144 H102 L90 122 L78 144 H64 Z" stroke="currentColor" stroke-width="14" stroke-linejoin="round"/></svg>`;
+
+function setRoleLabel(el, role) {
+  if (role === 'user') {
+    el.textContent = 'Siz';
+  } else {
+    el.classList.add('msg-role-logo');
+    el.innerHTML = PEAKS_ICON_SVG;
+  }
+}
+
+let ws = null;
+let currentMode = null;
+let isGenerating = false;
+let currentGroup = null;
+let currentText = '';
+let sessions = [];
+let activeSessionIdx = -1;
+let claudeSessionId = null;
+let reconnectTimer = null;
+let currentChatFolder = null;
+let pendingDeleteIdx = null;
+let pendingRenameIdx = null;
+
+function sanitizeName(name) {
+  return name.replace(/[/\\:*?"<>|.]/g, '').trim().slice(0, 50) || 'Sohbet';
+}
+
+function saveMsgToDisk(role, text) {
+  if (!currentChatFolder) return;
+  fetch(`/api/chats/${encodeURIComponent(currentChatFolder)}/message`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role, text })
+  }).catch(() => {});
+}
+
+async function loadChatsFromDisk() {
+  try {
+    const res = await fetch('/api/chats');
+    const chats = await res.json();
+    sessions = chats.map(c => ({ id: c.name, title: c.name, msgs: [], loaded: false }));
+    updateHistoryUI();
+  } catch {}
+}
+
+const LABELS = {
+  arastirma:'Derin Araştırma', socratik:'Sokratik Rehber',
+  makale:'Makale Yaz', plan:'Makale Planla',
+  hakem:'Hakem İncelemesi', pipeline:'Tam Sistem'
+};
+
+/* ── WebSocket ── */
+let attachedFiles = [];
+
+function handleFiles(files) {
+  for (const file of files) {
+    if (attachedFiles.find(f => f.name === file.name)) continue;
+    attachedFiles.push(file);
+  }
+  renderFilePreview();
+  document.getElementById('file-input').value = '';
+}
+
+function renderFilePreview() {
+  const preview = document.getElementById('file-preview');
+  preview.innerHTML = '';
+  attachedFiles.forEach((file, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'file-chip';
+    const icon = file.name.endsWith('.pdf') ? '📄' : '📎';
+    chip.innerHTML = `<span title="${file.name}">${file.name}</span><button onclick="removeFile(${i})"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+    preview.appendChild(chip);
+  });
+}
+
+function removeFile(idx) {
+  attachedFiles.splice(idx, 1);
+  renderFilePreview();
+}
+
+async function readFileAsText(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = () => resolve('[Dosya okunamadı]');
+    reader.readAsText(file);
+  });
+}
+
+let pingTimer = null;
+let lastPong = Date.now();
+
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}`);
+
+  ws.onopen = () => {
+    setStatus('active', 'Sistem Aktif');
+    clearTimeout(reconnectTimer);
+    lastPong = Date.now();
+    clearInterval(pingTimer);
+    pingTimer = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping' }));
+        setTimeout(() => {
+          if (Date.now() - lastPong > 15000) {
+            setStatus('connecting', 'Tekrar Deneniyor');
+            ws.close();
+          }
+        }, 5000);
+      }
+    }, 10000);
+
+    // WS yeniden bağlandıysa: session'a rejoin et
+    if (claudeSessionId) {
+      ws.send(JSON.stringify({ type: 'rejoin', sessionId: claudeSessionId }));
+    }
+    // Mevcut sohbeti render et
+    if (activeSessionIdx >= 0 && sessions[activeSessionIdx]?.msgs.length) {
+      loadSession(activeSessionIdx);
+    }
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'pong') { lastPong = Date.now(); return; }
+      handleMsg(msg);
+    } catch {}
+  };
+
+  ws.onclose = () => {
+    clearInterval(pingTimer);
+    // Üretim devam ediyorsa kullanıcıya bildir
+    if (isGenerating) {
+      setStatus('connecting', 'Tekrar Deneniyor');
+    } else {
+      setStatus('disconnected', 'Sistem Çöktü');
+    }
+    reconnectTimer = setTimeout(connect, 2000);
+  };
+
+  ws.onerror = () => setStatus('disconnected', 'Sistem Çöktü');
+}
+
+function handleMsg(msg) {
+  switch(msg.type) {
+    case 'connected':
+      claudeSessionId = msg.sessionId;
+      setStatus('active','Sistem Aktif');
+      break;
+    case 'rejoined':
+      console.log('Session\'a yeniden bağlanıldı:', msg.sessionId);
+      break;
+    case 'thinking':
+      setStatus('active', 'Sistem Aktif');
+      document.getElementById('token-bar').classList.add('visible');
+      document.getElementById('token-count').textContent = '0 token';
+      if (!currentGroup) startAssistantGroup();
+      break;
+    case 'token':
+      if (!currentGroup) startAssistantGroup();
+      appendToken(msg.text);
+      if (msg.tokens) {
+        document.getElementById('token-count').textContent = msg.tokens + ' token';
+      }
+      break;
+    case 'token_final':
+      document.getElementById('token-count').textContent = msg.tokens + ' token';
+      break;
+    case 'message_done':
+      finishGroup();
+      setStatus('active', 'Sistem Aktif');
+      document.getElementById('token-bar').classList.remove('visible');
+      break;
+    case 'done':
+      finishGroup();
+      setStatus('disconnected', 'Sistem Çöktü');
+      claudeSessionId = null;
+      break;
+    case 'error':
+      finishGroup();
+      addMessage('assistant','⚠ ' + msg.text);
+      setStatus('active', 'Sistem Aktif');
+      break;
+    case 'stopped':
+    case 'session_cleared':
+      finishGroup();
+      claudeSessionId = null;
+      setStatus('active', 'Sistem Aktif');
+      break;
+  }
+}
+
+/* ── Mesaj grupları (ChatGPT mantığı) ── */
+// Her user mesajı yeni bir grup değil — aynı konuşma devam eder.
+// Gruplar: user balonu + altındaki assistant balonu = bir çift.
+
+function addMessage(role, text) {
+  hideEmpty();
+  const area = document.getElementById('chat-area');
+
+  // Divider (ilk mesaj hariç)
+  if (area.querySelectorAll('.msg-group').length > 0) {
+    const div = document.createElement('div');
+    div.className = 'msg-divider';
+    area.appendChild(div);
+  }
+
+  const group = document.createElement('div');
+  group.className = `msg-group msg-${role}`;
+
+  const roleEl = document.createElement('div');
+  roleEl.className = 'msg-role';
+  setRoleLabel(roleEl, role);
+
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+  content.innerHTML = role === 'assistant' ? renderMd(text) : escHtml(text);
+
+  group.appendChild(roleEl);
+  group.appendChild(content);
+
+  if (role === 'assistant') {
+    const actions = buildActions(text, content);
+    group.appendChild(actions);
+  }
+
+  area.appendChild(group);
+  scrollBottom();
+  return group;
+}
+
+function startAssistantGroup() {
+  if (currentGroup) return;
+  isGenerating = true;
+  currentText = '';
+  hideEmpty();
+
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('stop-btn').classList.add('visible');
+
+  const area = document.getElementById('chat-area');
+
+  if (area.querySelectorAll('.msg-group').length > 0) {
+    const div = document.createElement('div');
+    div.className = 'msg-divider';
+    area.appendChild(div);
+  }
+
+  const group = document.createElement('div');
+  group.className = 'msg-group msg-assistant';
+
+  const roleEl = document.createElement('div');
+  roleEl.className = 'msg-role';
+  setRoleLabel(roleEl, 'assistant');
+
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  content.appendChild(cursor);
+
+  group.appendChild(roleEl);
+  group.appendChild(content);
+  area.appendChild(group);
+
+  currentGroup = { el: group, content, cursor };
+  scrollBottom();
+}
+
+function appendToken(text) {
+  if (!currentGroup) startAssistantGroup();
+  currentText += text;
+  const { content, cursor } = currentGroup;
+  content.innerHTML = renderMd(currentText);
+  content.appendChild(cursor);
+  scrollBottom();
+}
+
+function finishGroup() {
+  if (currentGroup) {
+    const { el, content, cursor } = currentGroup;
+    if (cursor.parentNode) cursor.parentNode.removeChild(cursor);
+    content.innerHTML = renderMd(currentText);
+
+    const actions = buildActions(currentText, content);
+    el.appendChild(actions);
+
+    saveToSession({ role:'assistant', text: currentText });
+    updateHistoryUI();
+    currentGroup = null;
+    currentText = '';
+  }
+  isGenerating = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('stop-btn').classList.remove('visible');
+}
+
+function buildActions(text, contentEl) {
+  const actions = document.createElement('div');
+  actions.className = 'msg-actions';
+
+  // Kopyala
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'action-btn';
+  copyBtn.innerHTML = `<svg fill="none" stroke-width="1.8" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Kopyala`;
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      copyBtn.classList.add('copied');
+      copyBtn.innerHTML = `<svg fill="none" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Kopyalandı`;
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtn.innerHTML = `<svg fill="none" stroke-width="1.8" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Kopyala`;
+      }, 2000);
+    });
+  };
+  actions.appendChild(copyBtn);
+
+  // İndir butonu
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'action-btn dl-btn';
+  dlBtn.innerHTML = `<svg fill="none" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> İndir`;
+  dlBtn.onclick = () => prepareDownload(text, dlBtn);
+  actions.appendChild(dlBtn);
+
+  return actions;
+}
+
+/* ── Geçmiş (sohbet mantığı) ── */
+// Her yeni konuşma = yeni session. Aynı konuşma içinde mesajlar birikerek devam eder.
+
+function saveToSession(msg) {
+  if (activeSessionIdx === -1) {
+    sessions.unshift({ id: Date.now().toString(), title: '', msgs: [], loaded: true });
+    activeSessionIdx = 0;
+  }
+  sessions[activeSessionIdx].msgs.push(msg);
+
+  const s = sessions[activeSessionIdx];
+  if (msg.role === 'user' && !s.title) {
+    s.title = '...';
+    updateHistoryUI();
+    fetch('/api/title', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: msg.text })
+    })
+    .then(r => r.json())
+    .then(d => {
+      const folderName = sanitizeName(d.title || msg.text.slice(0, 35));
+      s.title = folderName;
+      s.id = folderName;
+      currentChatFolder = folderName;
+      updateHistoryUI();
+      s.msgs.forEach(m => saveMsgToDisk(m.role, m.text));
+     // Session ID'yi chat klasörüne kaydet
+      if (claudeSessionId) {
+        fetch(`/api/chats/${encodeURIComponent(folderName)}/session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: claudeSessionId })
+        }).catch(() => {});
+      }
+    })
+    .catch(() => {
+      const folderName = sanitizeName(msg.text.slice(0, 35));
+      s.title = folderName;
+      s.id = folderName;
+      currentChatFolder = folderName;
+      updateHistoryUI();
+      s.msgs.forEach(m => saveMsgToDisk(m.role, m.text));
+    });
+  } else if (currentChatFolder) {
+    saveMsgToDisk(msg.role, msg.text);
+  }
+}
+
+function openDeletePopup(idx) {
+  pendingDeleteIdx = idx;
+  const title = sessions[idx]?.title || 'Bu sohbet';
+  document.getElementById('delete-popup-text').textContent = `"${title}" kalıcı olarak silinecek. Emin misiniz?`;
+  document.getElementById('delete-popup').classList.add('visible');
+}
+function closeDeletePopup() {
+  document.getElementById('delete-popup').classList.remove('visible');
+  pendingDeleteIdx = null;
+}
+function confirmDeleteSession() {
+  if (pendingDeleteIdx === null) return;
+  const idx = pendingDeleteIdx;
+  closeDeletePopup();
+  deleteSession(idx);
+}
+
+function openRenamePopup(idx) {
+  pendingRenameIdx = idx;
+  document.getElementById('rename-input').value = sessions[idx]?.title || '';
+  document.getElementById('rename-popup').classList.add('visible');
+  setTimeout(() => document.getElementById('rename-input').select(), 100);
+}
+function closeRenamePopup() {
+  document.getElementById('rename-popup').classList.remove('visible');
+  pendingRenameIdx = null;
+}
+async function confirmRenameSession() {
+  if (pendingRenameIdx === null) return;
+  const newName = document.getElementById('rename-input').value.trim();
+  if (!newName) return;
+  const idx = pendingRenameIdx;
+  const s = sessions[idx];
+  closeRenamePopup();
+  if (s?.id) {
+    try {
+      const res = await fetch(`/api/chats/${encodeURIComponent(s.id)}/rename`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newName })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        s.title = data.newName;
+        s.id = data.newName;
+        if (activeSessionIdx === idx) currentChatFolder = data.newName;
+      }
+    } catch {}
+  } else {
+    s.title = sanitizeName(newName);
+    s.id = s.title;
+  }
+  updateHistoryUI();
+}
+
+function deleteSession(idx) {
+  if (isGenerating && idx === activeSessionIdx) return;
+  const s = sessions[idx];
+  if (s?.id) {
+    fetch(`/api/chats/${encodeURIComponent(s.id)}`, { method: 'DELETE' }).catch(() => {});
+  }
+  sessions.splice(idx, 1);
+  if (activeSessionIdx === idx) {
+    activeSessionIdx = -1;
+    claudeSessionId = null;
+    currentChatFolder = null;
+    const area = document.getElementById('chat-area');
+    area.innerHTML = '';
+    const empty = document.createElement('div');
+    empty.className = 'empty-state'; empty.id = 'empty-state';
+    area.appendChild(empty);
+  } else if (activeSessionIdx > idx) {
+    activeSessionIdx--;
+  }
+  updateHistoryUI();
+}
+
+function updateHistoryUI() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+
+  if (!sessions.length) return;
+
+  sessions.forEach((s, i) => {
+    const item = document.createElement('div');
+    item.className = 'history-item' + (i === activeSessionIdx ? ' active-chat' : '');
+    item.innerHTML = `
+      <svg style="flex-shrink:0" fill="none" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis">${s.title || 'Yeni sohbet'}</span>
+      <button class="hist-btn" title="Yeniden adlandır" onclick="event.stopPropagation();openRenamePopup(${i})">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="hist-btn danger" title="Sil" onclick="event.stopPropagation();openDeletePopup(${i})">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      </button>`;
+    item.onclick = (e) => { if (!e.target.closest('.hist-btn')) loadSession(i); };
+    list.appendChild(item);
+  });
+}
+
+async function loadSession(idx) {
+  if (isGenerating) return;
+  activeSessionIdx = idx;
+  claudeSessionId = null;
+  currentChatFolder = sessions[idx]?.id || null;
+
+  const area = document.getElementById('chat-area');
+  area.innerHTML = '';
+
+  const s = sessions[idx];
+  if (!s) { updateHistoryUI(); return; }
+
+  // Disk'ten yükle (henüz yüklenmemişse)
+  if (!s.loaded && s.id) {
+    try {
+      const res = await fetch(`/api/chats/${encodeURIComponent(s.id)}`);
+      const msgs = await res.json();
+      s.msgs = msgs;
+      s.loaded = true;
+    } catch {}
+  }
+
+  if (!s.msgs.length) { updateHistoryUI(); return; }
+
+  s.msgs.forEach((msg, i) => {
+    if (i > 0) {
+      const div = document.createElement('div');
+      div.className = 'msg-divider';
+      area.appendChild(div);
+    }
+    const group = document.createElement('div');
+    group.className = 'msg-group msg-' + msg.role;
+    const roleEl = document.createElement('div');
+    roleEl.className = 'msg-role';
+    setRoleLabel(roleEl, msg.role);
+    const content = document.createElement('div');
+    content.className = 'msg-content';
+    content.innerHTML = msg.role === 'assistant' ? renderMd(msg.text) : escHtml(msg.text);
+    group.appendChild(roleEl);
+    group.appendChild(content);
+    if (msg.role === 'assistant') group.appendChild(buildActions(msg.text, content));
+    area.appendChild(group);
+  });
+
+  updateHistoryUI();
+  scrollBottom();
+}
+
+/* ── Gönder ── */
+async function sendMessage() {
+  const input = document.getElementById('input');
+  const text = input.value.trim();
+  if (!text || isGenerating) return;
+  if (!ws || ws.readyState !== WebSocket.OPEN) { showToast('Bağlantı yok, bekleyin...'); return; }
+
+  hideEmpty();
+
+  // Dosyaları oku ve prompt'a ekle
+  let fullText = text;
+  if (attachedFiles.length > 0) {
+    const fileContents = [];
+    for (const file of attachedFiles) {
+      const content = await readFileAsText(file);
+      fileContents.push(`\n\n--- Eklenen Dosya: ${file.name} ---\n${content.slice(0, 8000)}`);
+    }
+    fullText = text + fileContents.join('');
+    attachedFiles = [];
+    renderFilePreview();
+  }
+
+  addMessage('user', text + (attachedFiles.length > 0 ? ` [${attachedFiles.length} dosya eklendi]` : ''));
+  saveToSession({ role:'user', text });
+  updateHistoryUI();
+  input.value = '';
+  autoResize(input);
+
+  ws.send(JSON.stringify({ type:'chat', text: fullText, mode: currentMode }));
+}
+
+function fillAndSend(text) {
+  const input = document.getElementById('input');
+  input.value = text;
+  autoResize(input);
+  sendMessage();
+}
+
+function stopGeneration() {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type:'stop' }));
+  finishGroup();
+}
+
+function newChat() {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'new_session' }));
+  activeSessionIdx = -1;
+  claudeSessionId = null;
+  currentChatFolder = null;
+
+  const area = document.getElementById('chat-area');
+  area.innerHTML = '';
+  const empty = document.createElement('div');
+  empty.className = 'empty-state'; empty.id = 'empty-state';
+  empty.innerHTML = '';
+  area.appendChild(empty);
+}
+
+/* ── Yardımcılar ── */
+function renderMd(text) {
+  try { return marked.parse(text); } catch { return escHtml(text); }
+}
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function hideEmpty() { document.getElementById('empty-state')?.remove(); }
+function scrollBottom() { const c = document.getElementById('chat-area'); c.scrollTop = c.scrollHeight; }
+function handleKey(e) { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
+function showToast(t) {
+  const el = document.getElementById('toast'); el.textContent = t;
+  el.classList.add('visible'); setTimeout(()=>el.classList.remove('visible'),2500);
+}
+function setStatus(type, text) {
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot ' + (type || 'disconnected');
+  document.getElementById('status-text').textContent = text;
+}
+
+function selectChip(mode, el) {
+  if (el.classList.contains('sel')) {
+    // Zaten seçiliyse deselect
+    el.classList.remove('sel');
+    currentMode = null;
+    document.getElementById('mode-badge').textContent = 'Mod seçilmedi';
+  } else {
+    currentMode = mode;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+    document.getElementById('mode-badge').textContent = LABELS[mode] || mode;
+  }
+}
+function downloadLast() {
+  const groups = document.querySelectorAll('.msg-assistant');
+  if (!groups.length) { showToast('Henüz indirilebilecek içerik yok.'); return; }
+  const last = groups[groups.length-1].querySelector('.msg-content');
+  const blob = new Blob([last.innerText], { type:'text/plain;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'a3i-cikti.txt'; a.click();
+}
+
+/* ── İndirme ── */
+async function prepareDownload(text, btn) {
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<svg fill="none" stroke-width="1.8" viewBox="0 0 24 24" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> LaTeX formatlanıyor...`;
+
+  try {
+    const res = await fetch('/api/prepare-download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    btn.innerHTML = `<svg fill="none" stroke-width="1.8" viewBox="0 0 24 24" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> İndiriliyor...`;
+
+    // DOCX indir
+    const docxRes = await fetch('/api/download/' + data.docxFile);
+    const docxBlob = await docxRes.blob();
+    const a1 = document.createElement('a');
+    a1.href = URL.createObjectURL(docxBlob);
+    a1.download = data.docxFile;
+    a1.click();
+
+    await new Promise(r => setTimeout(r, 600));
+
+    // PDF indir (varsa)
+    if (data.pdfFile) {
+      const pdfRes = await fetch('/api/download/' + data.pdfFile);
+      const pdfBlob = await pdfRes.blob();
+      const a2 = document.createElement('a');
+      a2.href = URL.createObjectURL(pdfBlob);
+      a2.download = data.pdfFile;
+      a2.click();
+      btn.innerHTML = `<svg fill="none" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> DOCX + PDF indirildi`;
+    } else {
+      showToast('PDF üretilemedi, sadece DOCX indirildi. Chrome kurulu olmalı.');
+      btn.innerHTML = `<svg fill="none" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> DOCX indirildi`;
+    }
+
+    setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 4000);
+  } catch(e) {
+    btn.innerHTML = original;
+    btn.disabled = false;
+    showToast('İndirme hatası: ' + e.message);
+  }
+}
+
+
+loadChatsFromDisk();
+connect();
+</script>
+</body>
+</html>

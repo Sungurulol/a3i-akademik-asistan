@@ -1,0 +1,25 @@
+# Node
+macOS/backend/node_modules/
+Windows/backend/node_modules/
+
+# Kullanıcı verileri
+macOS/sessions/
+macOS/downloads/
+Windows/sessions/
+Windows/downloads/
+
+# Skills — kurulum sırasında klonlanır
+macOS/skills/
+Windows/skills/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Loglar
+*.log
+npm-debug.log*
+
+# Ortam
+.env
+.env.local
