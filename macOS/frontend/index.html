@@ -476,7 +476,15 @@ function handleMsg(msg) {
   switch(msg.type) {
     case 'connected':
       claudeSessionId = msg.sessionId;
-      setStatus('active','Sistem Aktif');
+      setStatus('active', 'Sistem Aktif');
+      // Session ID'yi chat klasörüne kaydet/güncelle
+      if (currentChatFolder) {
+        fetch(`/api/chats/${encodeURIComponent(currentChatFolder)}/session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: msg.sessionId })
+        }).catch(() => {});
+      }
       break;
     case 'rejoined':
       console.log('Session\'a yeniden bağlanıldı:', msg.sessionId);
@@ -806,10 +814,21 @@ function updateHistoryUI() {
   });
 }
 
+async function getSavedSessionId(chatFolder) {
+  if (!chatFolder) return null;
+  try {
+    const res = await fetch(`/api/chats/${encodeURIComponent(chatFolder)}/session-id`);
+    const data = await res.json();
+    return data.sessionId || null;
+  } catch { return null; }
+}
+
 async function loadSession(idx) {
   if (isGenerating) return;
   activeSessionIdx = idx;
-  claudeSessionId = null;
+  currentChatFolder = sessions[idx]?.id || null;
+  const savedSessionId = await getSavedSessionId(sessions[idx]?.id);
+  claudeSessionId = savedSessionId || null;
   currentChatFolder = sessions[idx]?.id || null;
 
   const area = document.getElementById('chat-area');
@@ -822,10 +841,13 @@ async function loadSession(idx) {
   if (!s.loaded && s.id) {
     try {
       const res = await fetch(`/api/chats/${encodeURIComponent(s.id)}`);
-      const msgs = await res.json();
-      s.msgs = msgs;
+      const data = await res.json();
+      // Backend {role, text, ts} formatında dönüyor
+      s.msgs = data.map(m => ({ role: m.role, text: m.text }));
       s.loaded = true;
-    } catch {}
+    } catch(e) {
+      console.error('[LOAD] Sohbet yüklenemedi:', e);
+    }
   }
 
   if (!s.msgs.length) { updateHistoryUI(); return; }
@@ -882,7 +904,16 @@ async function sendMessage() {
   input.value = '';
   autoResize(input);
 
-  ws.send(JSON.stringify({ type:'chat', text: fullText, mode: currentMode }));
+  let contextText = fullText;
+  const s = sessions[activeSessionIdx];
+  if (s && s.msgs.length > 0 && !s._contextInjected) {
+    const history = s.msgs.map(m =>
+      `[${m.role === 'user' ? 'Kullanıcı' : 'Asistan'}]: ${m.text}`
+    ).join('\n\n');
+    contextText = `Önceki konuşma geçmişimiz (devam ediyoruz):\n\n${history}\n\n---\n\nYeni mesaj: ${fullText}`;
+    s._contextInjected = true;
+  }
+  ws.send(JSON.stringify({ type: 'chat', text: contextText, mode: currentMode }));
 }
 
 function fillAndSend(text) {

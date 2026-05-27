@@ -23,17 +23,16 @@ const SESSIONS_DIR = path.join(__dirname, '../sessions');
 if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR, { recursive: true });
 const CHATS_DIR = path.join(__dirname, '../Chats');
 if (!fs.existsSync(CHATS_DIR)) fs.mkdirSync(CHATS_DIR, { recursive: true });
-// Başlatmada orphan session klasörlerini temizle (aktif process yok)
+
+// Startup'ta eski sessions temizle
 try {
   if (fs.existsSync(SESSIONS_DIR)) {
     fs.readdirSync(SESSIONS_DIR).forEach(dir => {
-      const isActive = [...activeProcs.values()].some(e => e.sessionId === dir);
-      if (!isActive) {
-        try { fs.rmSync(path.join(SESSIONS_DIR, dir), { recursive: true, force: true }); } catch {}
-      }
+      try { fs.rmSync(path.join(SESSIONS_DIR, dir), { recursive: true, force: true }); } catch {}
     });
   }
 } catch {}
+
 
 // Aktif Claude Code process'leri: wsSessionId -> { proc, sessionId, buffer }
 const activeProcs = new Map();
@@ -423,13 +422,16 @@ ${text.slice(0, 12000)}`;
     // 3. HTML → DOCX (html-to-docx ile düzgün format)
     const docxBuffer = await HTMLtoDOCX(html, null, {
       table: { row: { cantSplit: true } },
-      footer: true,
-      pageNumber: true,
+      footer: false,
+      pageNumber: false,
       font: 'Cambria',
       fontSize: 24,
       margins: { top: 1440, right: 1440, bottom: 1440, left: 1800 },
+      decodeEntities: false,
     });
+    if (!docxBuffer || docxBuffer.length < 100) throw new Error('DOCX oluşturulamadı');
     fs.writeFileSync(docxPath, docxBuffer);
+    console.log(`[DOCX] Oluşturuldu: ${docxPath} (${docxBuffer.length} byte)`);
 
     // 4. PDF — Chrome headless ile HTML'den
     const htmlPath = path.join(DOWNLOADS_DIR, 'a3i-' + fileId + '.html');
@@ -459,12 +461,23 @@ ${text.slice(0, 12000)}`;
 
     let pdfCreated = false;
     const { execSync } = require('child_process');
-
-    // Chrome ile PDF üret
     const chromePaths = [
       '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       '/Applications/Chromium.app/Contents/MacOS/Chromium',
-    ];
+      '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
+      `${process.env.HOME}/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`,
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      process.env.LOCALAPPDATA ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe` : '',
+    ].filter(p => p && fs.existsSync(p));
+
+    // which komutu ile de dene
+    if (!chromePaths.length) {
+      try {
+        const found = execSync('which google-chrome 2>/dev/null || which chromium 2>/dev/null || which chromium-browser 2>/dev/null').toString().trim();
+        if (found && fs.existsSync(found)) chromePaths.push(found);
+      } catch {}
+    }
     for (const chromePath of chromePaths) {
       if (fs.existsSync(chromePath)) {
         try {
@@ -729,6 +742,18 @@ app.delete('/api/chats/:name', (req, res) => {
     console.error('[DELETE] Hata:', e.message);
     res.status(500).json({ error: e.message });
   }
+});
+
+app.get('/api/chats/:name/session-id', (req, res) => {
+  try {
+    const name = decodeURIComponent(req.params.name);
+    const file = path.join(CHATS_DIR, name, 'session_id.txt');
+    if (!fs.existsSync(file)) return res.json({ sessionId: null });
+    const sessionId = fs.readFileSync(file, 'utf8').trim();
+    const sessionPath = path.join(SESSIONS_DIR, sessionId);
+    if (!fs.existsSync(sessionPath)) return res.json({ sessionId: null });
+    res.json({ sessionId });
+  } catch { res.json({ sessionId: null }); }
 });
 
 app.get('/api/health', (req, res) => {

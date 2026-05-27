@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-1.1.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-1.1.1-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -42,6 +42,7 @@ Research → Write → Integrity Check → Peer Review → Revise → Finalize
 | 📄 | **DOCX & PDF Export** | LaTeX-quality academic formatting, content untouched |
 | 💬 | **Live Streaming** | Real-time token streaming, live token counter |
 | 💾 | **Local Memory** | Conversations saved to `Chats/` folder, persistent across sessions |
+| 🔄 | **Context Continuity** | Reopening old chats injects conversation history as context |
 | 🇹🇷 | **Turkish UI** | Fully Turkish interface |
 
 ---
@@ -124,6 +125,11 @@ Academic skill files are **auto-updated** every time you launch.
 ---
 
 ## Changelog
+
+### v1.1.1
+- **Context continuity** — reopening an old chat injects the full conversation history so Claude remembers the context
+- **Session stability** — fixed "session already in use" error on app restart
+- **Sessions cleanup** — old session folders are cleaned up on every launch
 
 ### v1.1.0
 - **Real-time streaming** — tokens appear as they are generated

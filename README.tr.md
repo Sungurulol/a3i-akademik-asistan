@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![versiyon](https://img.shields.io/badge/versiyon-1.1.0-blue?style=flat-square)
+![versiyon](https://img.shields.io/badge/versiyon-1.1.1-blue?style=flat-square)
 ![lisans](https://img.shields.io/badge/lisans-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/Claude%20Code%20üzerine-kurulu-orange?style=flat-square)
@@ -42,6 +42,7 @@ Araştırma → Yazım → Bütünlük Kontrolü → Hakem İncelemesi → Reviz
 | 📄 | **DOCX & PDF İndirme** | LaTeX kalitesinde akademik format, içeriğe dokunulmadan |
 | 💬 | **Canlı Streaming** | Token'lar üretilirken ekranda görünür, canlı token sayacı |
 | 💾 | **Yerel Bellek** | Sohbetler `Chats/` klasörüne kaydedilir, uygulama yeniden açılınca yüklenir |
+| 🔄 | **Bağlam Sürekliliği** | Eski sohbet açılınca geçmiş konuşma context olarak enjekte edilir |
 | 🇹🇷 | **Türkçe Arayüz** | Tam Türkçe kullanım |
 
 ---
@@ -125,10 +126,15 @@ Her başlatmada akademik skill dosyaları **otomatik güncellenir**.
 
 ## Sürüm Notları
 
+### v1.1.1
+- **Bağlam sürekliliği** — eski sohbet açılınca tüm konuşma geçmişi context olarak enjekte edilir, Claude geçmişi hatırlar
+- **Session stabilitesi** — uygulama yeniden açılınca oluşan "session already in use" hatası giderildi
+- **Sessions temizliği** — eski session klasörleri her açılışta otomatik temizlenir
+
 ### v1.1.0
 - **Canlı streaming** — token'lar üretilirken ekranda görünür
 - **Canlı token sayacı** — üretim sırasında üst çubukta gösterilir
-- **WebSocket stabilitesi** — heartbeat sistemi, otomatik yeniden bağlanma, bağlantı kopunca session'a dönme
+- **WebSocket stabilitesi** — heartbeat sistemi, otomatik yeniden bağlanma
 - **Yerel bellek** — sohbetler `Chats/` klasörüne kaydedilir, uygulama yeniden açılınca yüklenir
 - **Sohbet yönetimi** — yeniden adlandırma, onay popup'ı ile silme
 - **AI destekli sohbet başlıkları** — her konuşma için otomatik 3–5 kelimelik başlık
