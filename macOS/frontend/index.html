@@ -184,6 +184,10 @@ textarea::placeholder{color:var(--text3)}
 .token-dot{width:6px;height:6px;border-radius:50%;background:#3b82f6;animation:pulse 1s ease-in-out infinite;flex-shrink:0}
 .token-count{font-weight:500;color:#93c5fd}
 
+.limit-warning{display:none;align-items:center;gap:10px;padding:6px 16px;background:rgba(234,179,8,.12);border-bottom:1px solid rgba(234,179,8,.3);font-size:12px;color:#eab308}
+.limit-warning.visible{display:flex}
+.limit-warning.critical{background:rgba(239,68,68,.12);border-bottom-color:rgba(239,68,68,.3);color:#ef4444}
+
 .popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:200}
 .popup-overlay.visible{display:flex}
 .popup{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:24px;width:320px}
@@ -242,9 +246,16 @@ textarea::placeholder{color:var(--text3)}
 
   <!-- Main -->
   <div class="main">
+    <div class="limit-warning" id="limit-warning">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span id="limit-warning-text"></span>
+    </div>
     <div class="token-bar" id="token-bar">
       <div class="token-dot"></div>
-      <span>Yanıt üretiliyor</span>
+      <span id="live-skill">—</span>
+      <span style="color:var(--text3)">·</span>
+      <span id="live-tool">Başlatılıyor</span>
+      <span style="color:var(--text3)">·</span>
       <span class="token-count" id="token-count">0 token</span>
     </div>
     <div class="topbar">
@@ -408,12 +419,16 @@ function removeFile(idx) {
 }
 
 async function readFileAsText(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result);
-    reader.onerror = () => resolve('[Dosya okunamadı]');
-    reader.readAsText(file);
-  });
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.error) return `[Dosya işlenemedi: ${data.error}]`;
+    return data.content;
+  } catch (e) {
+    return `[Dosya yüklenemedi: ${e.message}]`;
+  }
 }
 
 let pingTimer = null;
@@ -490,9 +505,11 @@ function handleMsg(msg) {
       console.log('Session\'a yeniden bağlanıldı:', msg.sessionId);
       break;
     case 'thinking':
-      setStatus('active', 'Sistem Aktif');
+      setStatus('thinking','Düşünüyor...');
       document.getElementById('token-bar').classList.add('visible');
       document.getElementById('token-count').textContent = '0 token';
+      document.getElementById('live-skill').textContent = LABELS[currentMode] || 'Genel';
+      document.getElementById('live-tool').textContent = 'Başlatılıyor';
       if (!currentGroup) startAssistantGroup();
       break;
     case 'token':
@@ -502,6 +519,9 @@ function handleMsg(msg) {
         document.getElementById('token-count').textContent = msg.tokens + ' token';
       }
       break;
+    case 'tool':
+      if (msg.name) document.getElementById('live-tool').textContent = msg.name;
+      break;
     case 'token_final':
       document.getElementById('token-count').textContent = msg.tokens + ' token';
       break;
@@ -509,6 +529,7 @@ function handleMsg(msg) {
       finishGroup();
       setStatus('active', 'Sistem Aktif');
       document.getElementById('token-bar').classList.remove('visible');
+      document.getElementById('limit-warning').classList.remove('visible');
       break;
     case 'done':
       finishGroup();
@@ -520,6 +541,19 @@ function handleMsg(msg) {
       addMessage('assistant','⚠ ' + msg.text);
       setStatus('active', 'Sistem Aktif');
       break;
+    case 'rate_limit_warning': {
+      const el = document.getElementById('limit-warning');
+      const txt = document.getElementById('limit-warning-text');
+      if (msg.status === 'rejected') {
+        el.classList.add('critical');
+        txt.textContent = '⚠ Token/limit doldu — lütfen biraz bekleyin veya yeni sohbet başlatın';
+      } else {
+        el.classList.remove('critical');
+        txt.textContent = '⚠ Limite yaklaşılıyor — yanıt kısa kesilebilir';
+      }
+      el.classList.add('visible');
+      break;
+    }
     case 'stopped':
     case 'session_cleared':
       finishGroup();
@@ -885,21 +919,25 @@ async function sendMessage() {
 
   hideEmpty();
 
-  // Dosyaları oku ve prompt'a ekle
+  // Dosyaları yükle, markitdown ile işle, geçmişe kaydedilecek metni de hazırla
   let fullText = text;
+  let savedText = text; // sohbet geçmişine kaydedilecek (dosya içeriği dahil)
+  const fileNames = attachedFiles.map(f => f.name);
+
   if (attachedFiles.length > 0) {
     const fileContents = [];
     for (const file of attachedFiles) {
       const content = await readFileAsText(file);
-      fileContents.push(`\n\n--- Eklenen Dosya: ${file.name} ---\n${content.slice(0, 8000)}`);
+      fileContents.push(`\n\n--- Eklenen Dosya: ${file.name} ---\n${content}`);
     }
     fullText = text + fileContents.join('');
+    savedText = fullText; // geçmişe de dosya içeriğiyle birlikte kaydet
     attachedFiles = [];
     renderFilePreview();
   }
 
-  addMessage('user', text + (attachedFiles.length > 0 ? ` [${attachedFiles.length} dosya eklendi]` : ''));
-  saveToSession({ role:'user', text });
+  addMessage('user', text + (fileNames.length > 0 ? ` [${fileNames.length} dosya eklendi: ${fileNames.join(', ')}]` : ''));
+  saveToSession({ role: 'user', text: savedText });
   updateHistoryUI();
   input.value = '';
   autoResize(input);

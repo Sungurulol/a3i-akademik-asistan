@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![versiyon](https://img.shields.io/badge/versiyon-1.1.1-blue?style=flat-square)
+![versiyon](https://img.shields.io/badge/versiyon-2.0.0-blue?style=flat-square)
 ![lisans](https://img.shields.io/badge/lisans-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/Claude%20Code%20üzerine-kurulu-orange?style=flat-square)
@@ -40,9 +40,12 @@ Araştırma → Yazım → Bütünlük Kontrolü → Hakem İncelemesi → Reviz
 | ⭐ | **Hakem İncele** | 5 perspektiften peer review, 0–100 kalite puanı |
 | 🔁 | **Tam Sistem** | Araştırma → Yazım → İnceleme → Revizyon → Finalizasyon |
 | 📄 | **DOCX & PDF İndirme** | LaTeX kalitesinde akademik format, içeriğe dokunulmadan |
-| 💬 | **Canlı Streaming** | Token'lar üretilirken ekranda görünür, canlı token sayacı |
+| 💬 | **Canlı Streaming** | Token'lar üretilirken ekranda görünür, canlı token sayacı, canlı skill/araç göstergesi |
 | 💾 | **Yerel Bellek** | Sohbetler `Chats/` klasörüne kaydedilir, uygulama yeniden açılınca yüklenir |
 | 🔄 | **Bağlam Sürekliliği** | Eski sohbet açılınca geçmiş konuşma context olarak enjekte edilir |
+| 📎 | **Akıllı Dosya İşleme** | Yüklenen dosyalar (PDF, DOCX, PPTX, XLSX) MarkItDown ile temiz Markdown'a çevrilir — ham metne göre çok daha az token harcar |
+| ⚠️ | **Limit Farkındalığı** | Kullanım limitine yaklaşılınca veya dolunca görünür sarı/kırmızı uyarı şeridi |
+| 🔐 | **Otomatik Oturum Yenileme** | Her başlatmada Claude girişi otomatik yenilenir, eski token'dan kaynaklanan 401 hataları önlenir |
 | 🇹🇷 | **Türkçe Arayüz** | Tam Türkçe kullanım |
 
 ---
@@ -68,8 +71,8 @@ Araştırma → Yazım → Bütünlük Kontrolü → Hakem İncelemesi → Reviz
 > **Gereksinim:** [Claude](https://claude.ai) hesabı gereklidir. Claude Pro veya Max planı önerilir.
 
 Kurulum otomatik olarak kurar:
-- **macOS:** Homebrew · Node.js · Claude Code
-- **Windows:** Chocolatey · Node.js · Claude Code
+- **macOS:** Homebrew · Node.js · Python · MarkItDown · Claude Code
+- **Windows:** Chocolatey · Node.js · Python · MarkItDown · Claude Code
 
 ---
 
@@ -84,7 +87,7 @@ baslat.bat dosyasına çift tıklayın
 ```
 
 Tarayıcı otomatik olarak `http://localhost:3000` adresinde açılır.  
-Her başlatmada akademik skill dosyaları **otomatik güncellenir**.
+Her başlatmada akademik skill dosyaları **otomatik güncellenir** ve Claude oturumunuz **otomatik yenilenir**.
 
 ---
 
@@ -110,6 +113,8 @@ Her başlatmada akademik skill dosyaları **otomatik güncellenir**.
 │     academic-research-skills (Skill'ler)    │
 │   github.com/Imbad0202/academic-research-skills │
 └─────────────────────────────────────────────┘
+
+Yüklenen dosyalar → MarkItDown → temiz Markdown → prompt'a enjekte edilir
 ```
 
 ---
@@ -119,12 +124,19 @@ Her başlatmada akademik skill dosyaları **otomatik güncellenir**.
 | | macOS | Windows |
 |---|---|---|
 | İşletim Sistemi | macOS 12+ | Windows 10/11 |
-| Otomatik Kurulan | Homebrew, Node.js, Claude Code | Chocolatey, Node.js, Claude Code |
+| Otomatik Kurulan | Homebrew, Node.js, Python, MarkItDown, Claude Code | Chocolatey, Node.js, Python, MarkItDown, Claude Code |
 | Hesap | Claude Pro / Max | Claude Pro / Max |
 
 ---
 
 ## Sürüm Notları
+
+### v2.0.0
+- **MarkItDown entegrasyonu** — yüklenen dosyalar (PDF, DOCX, PPTX, XLSX) modele gitmeden önce temiz Markdown'a çevrilir, ham metin çıkarmaya kıyasla token kullanımını önemli ölçüde azaltır
+- **Skill/araç göstergesi** — üretim sırasında aktif skill ve araç adı üst çubukta canlı gösterilir
+- **Limit uyarı şeridi** — kullanım limitine yaklaşılınca veya dolunca sessizce başarısız olmak yerine görünür sarı/kırmızı bir şerit gösterilir
+- **Otomatik oturum yenileme** — her başlatmada `claude auth logout` + `claude auth login` otomatik çalışır, eski token kaynaklı 401 hatalarını önler
+- **Windows kurulum eşitliği** — Python ve MarkItDown artık Windows'ta da otomatik kuruluyor
 
 ### v1.1.1
 - **Bağlam sürekliliği** — eski sohbet açılınca tüm konuşma geçmişi context olarak enjekte edilir, Claude geçmişi hatırlar
@@ -153,6 +165,8 @@ Her başlatmada akademik skill dosyaları **otomatik güncellenir**.
 ## Teşekkür
 
 Bu proje, [Cheng-I Wu](https://github.com/Imbad0202) tarafından geliştirilen **[Academic Research Skills](https://github.com/Imbad0202/academic-research-skills)** üzerine inşa edilmiştir. Lisans: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
+
+Dosya işleme Microsoft'un **[MarkItDown](https://github.com/microsoft/markitdown)** kütüphanesi ile sağlanır, MIT lisanslıdır.
 
 ---
 

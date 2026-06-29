@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-1.1.1-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-2.0.0-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -40,9 +40,12 @@ Research → Write → Integrity Check → Peer Review → Revise → Finalize
 | ⭐ | **Peer Review** | 5-perspective review with 0–100 quality scoring |
 | 🔁 | **Full System** | End-to-end pipeline: research → write → review → revise → finalize |
 | 📄 | **DOCX & PDF Export** | LaTeX-quality academic formatting, content untouched |
-| 💬 | **Live Streaming** | Real-time token streaming, live token counter |
+| 💬 | **Live Streaming** | Real-time token streaming, live token counter, live skill/tool indicator |
 | 💾 | **Local Memory** | Conversations saved to `Chats/` folder, persistent across sessions |
 | 🔄 | **Context Continuity** | Reopening old chats injects conversation history as context |
+| 📎 | **Smart File Processing** | Uploaded files (PDF, DOCX, PPTX, XLSX) are converted to clean Markdown via MarkItDown — far fewer tokens than raw text |
+| ⚠️ | **Rate Limit Awareness** | Visible warning banner when approaching or hitting Claude's usage limits |
+| 🔐 | **Auto Session Refresh** | Claude login is refreshed automatically on every launch to prevent auth errors |
 | 🇹🇷 | **Turkish UI** | Fully Turkish interface |
 
 ---
@@ -68,8 +71,8 @@ Research → Write → Integrity Check → Peer Review → Revise → Finalize
 > **Requirements:** A [Claude](https://claude.ai) account is required. Claude Pro or Max plan is recommended.
 
 The installer automatically sets up:
-- **macOS:** Homebrew · Node.js · Claude Code
-- **Windows:** Chocolatey · Node.js · Claude Code
+- **macOS:** Homebrew · Node.js · Python · MarkItDown · Claude Code
+- **Windows:** Chocolatey · Node.js · Python · MarkItDown · Claude Code
 
 ---
 
@@ -84,7 +87,7 @@ double-click baslat.bat
 ```
 
 The browser opens automatically at `http://localhost:3000`.  
-Academic skill files are **auto-updated** every time you launch.
+Academic skill files are **auto-updated** and your Claude session is **auto-refreshed** every time you launch.
 
 ---
 
@@ -110,6 +113,8 @@ Academic skill files are **auto-updated** every time you launch.
 │     academic-research-skills (Skills)       │
 │   github.com/Imbad0202/academic-research-skills │
 └─────────────────────────────────────────────┘
+
+Uploaded files → MarkItDown → clean Markdown → injected into prompt
 ```
 
 ---
@@ -119,12 +124,19 @@ Academic skill files are **auto-updated** every time you launch.
 | | macOS | Windows |
 |---|---|---|
 | OS | macOS 12+ | Windows 10/11 |
-| Auto-installed | Homebrew, Node.js, Claude Code | Chocolatey, Node.js, Claude Code |
+| Auto-installed | Homebrew, Node.js, Python, MarkItDown, Claude Code | Chocolatey, Node.js, Python, MarkItDown, Claude Code |
 | Account | Claude Pro / Max | Claude Pro / Max |
 
 ---
 
 ## Changelog
+
+### v2.0.0
+- **MarkItDown integration** — uploaded files (PDF, DOCX, PPTX, XLSX) are converted to clean Markdown before reaching the model, cutting token usage significantly compared to raw text extraction
+- **Skill/tool indicator** — the active skill and tool name are shown live in the top bar during generation
+- **Rate limit warning banner** — a visible yellow/red banner appears when approaching or hitting usage limits, instead of failing silently
+- **Automatic session refresh** — `claude auth logout` + `claude auth login` run automatically on every launch, preventing stale-token 401 errors
+- **Windows installer parity** — Python and MarkItDown are now installed automatically on Windows as well
 
 ### v1.1.1
 - **Context continuity** — reopening an old chat injects the full conversation history so Claude remembers the context
@@ -153,6 +165,8 @@ Academic skill files are **auto-updated** every time you launch.
 ## Credits
 
 This project is built on top of **[Academic Research Skills](https://github.com/Imbad0202/academic-research-skills)** by [Cheng-I Wu](https://github.com/Imbad0202), licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
+
+File processing is powered by **[MarkItDown](https://github.com/microsoft/markitdown)** by Microsoft, licensed under MIT.
 
 ---
 

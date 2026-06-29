@@ -51,6 +51,20 @@ else
   ok "Node.js kuruldu"
 fi
 
+# ── Python & MarkItDown ──────────────────────
+step "Python & MarkItDown"
+if command -v python3 &>/dev/null; then
+  ok "Python3 kurulu ($(python3 --version))"
+else
+  info "Python3 kuruluyor..."
+  brew install python@3.13
+  ok "Python3 kuruldu"
+fi
+
+info "MarkItDown kuruluyor (dosya işleme için)..."
+pip3 install --user --quiet 'markitdown[pdf,docx,pptx,xlsx]' 2>/dev/null
+ok "MarkItDown kuruldu"
+
 # ── Claude Code ──────────────────────────────
 step "Claude Code"
 if command -v claude &>/dev/null; then

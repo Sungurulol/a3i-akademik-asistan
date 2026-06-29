@@ -18,7 +18,7 @@ cd /d "%SCRIPT_DIR%"
 
 :: ── Chocolatey ──────────────────────────────
 echo.
-echo  [1/5] Chocolatey kontrol ediliyor...
+echo  [1/6] Chocolatey kontrol ediliyor...
 where choco >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
   echo  Chocolatey kuruluyor...
@@ -30,7 +30,7 @@ IF %ERRORLEVEL% NEQ 0 (
 
 :: ── Node.js ─────────────────────────────────
 echo.
-echo  [2/5] Node.js kontrol ediliyor...
+echo  [2/6] Node.js kontrol ediliyor...
 where node >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
   echo  Node.js kuruluyor...
@@ -41,9 +41,26 @@ IF %ERRORLEVEL% NEQ 0 (
   echo  Node.js zaten kurulu.
 )
 
+:: ── Python & MarkItDown ─────────────────────
+echo.
+echo  [3/6] Python kontrol ediliyor...
+where python >nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+  echo  Python kuruluyor...
+  choco install python -y
+  CALL refreshenv
+  echo  Python kuruldu.
+) ELSE (
+  echo  Python zaten kurulu.
+)
+
+echo  MarkItDown kuruluyor (dosya isleme icin)...
+pip install --user "markitdown[pdf,docx,pptx,xlsx]" --quiet
+echo  MarkItDown kuruldu.
+
 :: ── Claude Code ─────────────────────────────
 echo.
-echo  [3/5] Claude Code kontrol ediliyor...
+echo  [4/6] Claude Code kontrol ediliyor...
 where claude >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
   echo  Claude Code kuruluyor...
@@ -55,7 +72,7 @@ IF %ERRORLEVEL% NEQ 0 (
 
 :: ── npm paketleri ───────────────────────────
 echo.
-echo  [4/5] Backend paketleri kuruluyor...
+echo  [5/6] Backend paketleri kuruluyor...
 cd "%SCRIPT_DIR%backend"
 npm install
 cd "%SCRIPT_DIR%"
@@ -63,7 +80,7 @@ echo  Paketler hazır.
 
 :: ── Skills repo ─────────────────────────────
 echo.
-echo  [5/5] Akademik skill dosyaları indiriliyor...
+echo  [6/6] Akademik skill dosyaları indiriliyor...
 IF NOT EXIST "%SCRIPT_DIR%skills\academic-research-skills\.claude" (
   IF NOT EXIST "%SCRIPT_DIR%skills" mkdir "%SCRIPT_DIR%skills"
   git clone https://github.com/Imbad0202/academic-research-skills.git "%SCRIPT_DIR%skills\academic-research-skills"

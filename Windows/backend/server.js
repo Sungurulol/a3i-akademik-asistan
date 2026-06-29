@@ -1,3 +1,4 @@
+const multer = require('multer');
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -277,8 +278,11 @@ function handleEvent(ws, wsId, entry, event) {
       break;
 
     case 'stream_event': {
-          const se = event.event;
-          if (se?.type === 'content_block_delta' && se?.delta?.type === 'text_delta') {
+      const se = event.event;
+      if (se?.type === 'content_block_start' && se?.content_block?.type === 'tool_use') {
+        send(ws, { type: 'tool', name: se.content_block.name });
+      }
+      if (se?.type === 'content_block_delta' && se?.delta?.type === 'text_delta') {
             const txt = se.delta.text;
             if (txt) {
               if (!entry.lastAssistantText) entry.lastAssistantText = '';
@@ -306,7 +310,17 @@ function handleEvent(ws, wsId, entry, event) {
             }
           }
           break;
-          
+
+    case 'rate_limit_event':
+      // Rate limit / context limit bilgisini frontend'e ilet
+      if (event.rate_limit) {
+        const { status, resets_at } = event.rate_limit;
+        if (status === 'allowed_warning' || status === 'rejected') {
+          send(ws, { type: 'rate_limit_warning', status, resetsAt: resets_at });
+        }
+      }
+      break;
+
     case 'result':
       // Mesaj tamamlandı — son metni history'e kaydet
       if (entry.lastAssistantText) {
@@ -376,6 +390,55 @@ app.post('/api/title', async (req, res) => {
   proc.on('error', () => res.json({ title: text.slice(0, 35) }));
 });
 
+// ── Dosya yükleme (markitdown ile işleme) ──────────────────────
+const UPLOADS_DIR = path.join(__dirname, '../uploads');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const upload = multer({ dest: UPLOADS_DIR, limits: { fileSize: 25 * 1024 * 1024 } });
+
+function findMarkitdown() {
+  const candidates = [
+    path.join(process.env.HOME || '', 'Library/Python/3.13/bin/markitdown'),
+    path.join(process.env.HOME || '', 'Library/Python/3.12/bin/markitdown'),
+    path.join(process.env.HOME || '', '.local/bin/markitdown'),
+    'markitdown',
+  ];
+  return candidates.find(p => p === 'markitdown' || fs.existsSync(p)) || 'markitdown';
+}
+
+function runMarkitdown(filePath) {
+  return new Promise((resolve) => {
+    const bin = findMarkitdown();
+    const proc = spawn(bin, [filePath]);
+    let out = '', err = '';
+    proc.stdout.on('data', d => out += d.toString());
+    proc.stderr.on('data', d => err += d.toString());
+    proc.on('close', (code) => {
+      if (code === 0 && out.trim()) resolve(out.trim());
+      else resolve(null);
+    });
+    proc.on('error', () => resolve(null));
+    setTimeout(() => { try { proc.kill(); } catch {} resolve(null); }, 30000);
+  });
+}
+
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Dosya yok' });
+  const { path: tmpPath, originalname } = req.file;
+  try {
+    let text = await runMarkitdown(tmpPath);
+    if (!text) {
+      // markitdown başarısızsa ham metin olarak oku (txt/md gibi dosyalar için)
+      try { text = fs.readFileSync(tmpPath, 'utf8').slice(0, 12000); } catch { text = null; }
+    }
+    fs.unlink(tmpPath, () => {});
+    if (!text) return res.status(500).json({ error: 'Dosya işlenemedi' });
+    res.json({ filename: originalname, content: text.slice(0, 12000) });
+  } catch (e) {
+    try { fs.unlink(tmpPath, () => {}); } catch {}
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // ── İndirme hazırlama ──────────────────────────────────────────
 const DOWNLOADS_DIR = require('path').join(__dirname, '../downloads');

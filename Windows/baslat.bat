@@ -38,6 +38,12 @@ IF EXIST "%SCRIPT_DIR%skills\academic-research-skills\.git" (
   echo  Skills indirildi.
 )
 
+:: ── Claude oturumu yenile ───────────────────
+echo  Claude oturumu yenileniyor...
+claude auth logout >nul 2>&1
+claude auth login
+echo  Oturum yenilendi.
+
 :: ── Önceki oturumu kapat ────────────────────
 for /f "tokens=5" %%a in ('netstat -aon ^| find ":%PORT%" ^| find "LISTENING"') do (
   taskkill /f /pid %%a >nul 2>&1

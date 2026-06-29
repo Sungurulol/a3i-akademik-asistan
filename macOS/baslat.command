@@ -39,6 +39,7 @@ if [ -d "$SKILLS_DIR/.git" ]; then
   git pull --quiet origin main 2>/dev/null || git pull --quiet origin master 2>/dev/null || true
   cd "$SCRIPT_DIR"
   ok "Skills güncel"
+  
 else
   info "Skills indiriliyor..."
   mkdir -p "$SCRIPT_DIR/skills"
@@ -46,10 +47,14 @@ else
   ok "Skills indirildi"
 fi
 
+# ── Claude oturumu yenile ────────────────────
+info "Claude oturumu yenileniyor..."
+claude auth logout &>/dev/null
+claude auth login
+ok "Oturum yenilendi"
+
 # ── Önceki oturumu temizle ───────────────────
 lsof -ti:$PORT | xargs kill -9 2>/dev/null || true
-sleep 0.3
-
 # ── Backend başlat ───────────────────────────
 info "Sunucu başlatılıyor..."
 node "$SCRIPT_DIR/backend/server.js" &
