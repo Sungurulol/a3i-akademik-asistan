@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![versiyon](https://img.shields.io/badge/versiyon-2.0.0-blue?style=flat-square)
+![versiyon](https://img.shields.io/badge/versiyon-2.0.1-blue?style=flat-square)
 ![lisans](https://img.shields.io/badge/lisans-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/Claude%20Code%20üzerine-kurulu-orange?style=flat-square)
@@ -43,9 +43,9 @@ Araştırma → Yazım → Bütünlük Kontrolü → Hakem İncelemesi → Reviz
 | 💬 | **Canlı Streaming** | Token'lar üretilirken ekranda görünür, canlı token sayacı, canlı skill/araç göstergesi |
 | 💾 | **Yerel Bellek** | Sohbetler `Chats/` klasörüne kaydedilir, uygulama yeniden açılınca yüklenir |
 | 🔄 | **Bağlam Sürekliliği** | Eski sohbet açılınca geçmiş konuşma context olarak enjekte edilir |
-| 📎 | **Akıllı Dosya İşleme** | Yüklenen dosyalar (PDF, DOCX, PPTX, XLSX) MarkItDown ile temiz Markdown'a çevrilir — ham metne göre çok daha az token harcar |
-| ⚠️ | **Limit Farkındalığı** | Kullanım limitine yaklaşılınca veya dolunca görünür sarı/kırmızı uyarı şeridi |
-| 🔐 | **Otomatik Oturum Yenileme** | Her başlatmada Claude girişi otomatik yenilenir, eski token'dan kaynaklanan 401 hataları önlenir |
+| 📎 | **Akıllı Dosya İşleme** | Yüklenen dosyalar (PDF, DOCX, PPTX, XLSX) MarkItDown ile temiz Markdown'a çevrilir |
+| ⚠️ | **Limit Farkındalığı** | Kullanım limitine yaklaşılınca görünür sarı/kırmızı uyarı şeridi |
+| 🔐 | **Otomatik Oturum Yenileme** | Her başlatmada Claude girişi otomatik yenilenir |
 | 🇹🇷 | **Türkçe Arayüz** | Tam Türkçe kullanım |
 
 ---
@@ -131,27 +131,30 @@ Yüklenen dosyalar → MarkItDown → temiz Markdown → prompt'a enjekte edilir
 
 ## Sürüm Notları
 
+### v2.0.1
+- **Düzeltme:** Sohbet başlığı üretimi artık Türkçe (ASCII dışı) karakterlerde çökmüyor — prompt artık CLI argümanı yerine stdin üzerinden iletiliyor
+
 ### v2.0.0
-- **MarkItDown entegrasyonu** — yüklenen dosyalar (PDF, DOCX, PPTX, XLSX) modele gitmeden önce temiz Markdown'a çevrilir, ham metin çıkarmaya kıyasla token kullanımını önemli ölçüde azaltır
+- **MarkItDown entegrasyonu** — yüklenen dosyalar modele gitmeden önce temiz Markdown'a çevrilir, token kullanımını önemli ölçüde azaltır
 - **Skill/araç göstergesi** — üretim sırasında aktif skill ve araç adı üst çubukta canlı gösterilir
-- **Limit uyarı şeridi** — kullanım limitine yaklaşılınca veya dolunca sessizce başarısız olmak yerine görünür sarı/kırmızı bir şerit gösterilir
-- **Otomatik oturum yenileme** — her başlatmada `claude auth logout` + `claude auth login` otomatik çalışır, eski token kaynaklı 401 hatalarını önler
+- **Limit uyarı şeridi** — kullanım limitine yaklaşılınca görünür sarı/kırmızı şerit gösterilir
+- **Otomatik oturum yenileme** — her başlatmada `claude auth logout` + `claude auth login` otomatik çalışır
 - **Windows kurulum eşitliği** — Python ve MarkItDown artık Windows'ta da otomatik kuruluyor
 
 ### v1.1.1
-- **Bağlam sürekliliği** — eski sohbet açılınca tüm konuşma geçmişi context olarak enjekte edilir, Claude geçmişi hatırlar
-- **Session stabilitesi** — uygulama yeniden açılınca oluşan "session already in use" hatası giderildi
+- **Bağlam sürekliliği** — eski sohbet açılınca tüm konuşma geçmişi context olarak enjekte edilir
+- **Session stabilitesi** — "session already in use" hatası giderildi
 - **Sessions temizliği** — eski session klasörleri her açılışta otomatik temizlenir
 
 ### v1.1.0
 - **Canlı streaming** — token'lar üretilirken ekranda görünür
 - **Canlı token sayacı** — üretim sırasında üst çubukta gösterilir
 - **WebSocket stabilitesi** — heartbeat sistemi, otomatik yeniden bağlanma
-- **Yerel bellek** — sohbetler `Chats/` klasörüne kaydedilir, uygulama yeniden açılınca yüklenir
+- **Yerel bellek** — sohbetler `Chats/` klasörüne kaydedilir
 - **Sohbet yönetimi** — yeniden adlandırma, onay popup'ı ile silme
-- **AI destekli sohbet başlıkları** — her konuşma için otomatik 3–5 kelimelik başlık
+- **AI destekli sohbet başlıkları** — otomatik 3–5 kelimelik başlık
 - **WS durum göstergesi** — yeşil / sarı / kırmızı bağlantı durumu
-- **PDF iyileştirmesi** — tüm kullanıcılar için genişletilmiş Chrome yolu tespiti
+- **PDF iyileştirmesi** — genişletilmiş Chrome yolu tespiti
 
 ### v1.0.0
 - İlk sürüm

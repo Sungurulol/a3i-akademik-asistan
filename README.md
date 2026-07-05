@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-2.0.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-2.0.1-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -131,11 +131,14 @@ Uploaded files → MarkItDown → clean Markdown → injected into prompt
 
 ## Changelog
 
+### v2.0.1
+- **Fix:** Chat title generation no longer crashes with Turkish (non-ASCII) characters — prompt is now passed via stdin instead of as a CLI argument
+
 ### v2.0.0
-- **MarkItDown integration** — uploaded files (PDF, DOCX, PPTX, XLSX) are converted to clean Markdown before reaching the model, cutting token usage significantly compared to raw text extraction
+- **MarkItDown integration** — uploaded files (PDF, DOCX, PPTX, XLSX) are converted to clean Markdown before reaching the model, cutting token usage significantly
 - **Skill/tool indicator** — the active skill and tool name are shown live in the top bar during generation
-- **Rate limit warning banner** — a visible yellow/red banner appears when approaching or hitting usage limits, instead of failing silently
-- **Automatic session refresh** — `claude auth logout` + `claude auth login` run automatically on every launch, preventing stale-token 401 errors
+- **Rate limit warning banner** — a visible yellow/red banner appears when approaching or hitting usage limits
+- **Automatic session refresh** — `claude auth logout` + `claude auth login` run automatically on every launch
 - **Windows installer parity** — Python and MarkItDown are now installed automatically on Windows as well
 
 ### v1.1.1
