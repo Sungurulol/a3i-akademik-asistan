@@ -378,16 +378,26 @@ function waitForInit(entry, timeoutMs) {
 
 app.post('/api/title', async (req, res) => {
   const { text } = req.body;
-  if (!text) return res.json({ title: '' });
-  const prompt = 'Aşağıdaki kullanıcı mesajı için 3-5 kelimelik kısa bir sohbet başlığı üret. Sadece başlığı yaz, başka hiçbir şey ekleme, nokta veya tırnak kullanma.\n\nMesaj: ' + text.slice(0, 200);
-  const proc = spawn('claude', ['--print', prompt], { cwd: SKILLS_DIR, env: { ...process.env } });
-  let output = '';
-  proc.stdout.on('data', d => output += d.toString());
-  proc.on('close', () => {
-    const title = output.trim().split('\n')[0].replace(/["""\u2018\u2019]/g, '').trim().slice(0, 50);
-    res.json({ title: title || text.slice(0, 35) });
-  });
-  proc.on('error', () => res.json({ title: text.slice(0, 35) }));
+  if (!text) return res.json({ title: 'Yeni Sohbet' });
+  try {
+    const prompt = `Aşağıdaki kullanıcı mesajı için 3-5 kelimelik kısa bir sohbet başlığı üret. Sadece başlığı yaz, başka hiçbir şey ekleme, nokta koyma:\n\n${text.slice(0, 200)}`;
+    const proc = spawn('claude', ['--print'], {
+      env: { ...process.env },
+      cwd: process.env.HOME,
+    });
+    let out = '';
+    proc.stdout.on('data', d => out += d.toString());
+    proc.stdin.write(prompt, 'utf8');
+    proc.stdin.end();
+    proc.on('close', () => {
+      const title = out.trim().split('\n')[0].slice(0, 50) || 'Yeni Sohbet';
+      res.json({ title });
+    });
+    proc.on('error', () => res.json({ title: text.slice(0, 35) }));
+    setTimeout(() => { try { proc.kill(); } catch {} }, 15000);
+  } catch {
+    res.json({ title: text.slice(0, 35) });
+  }
 });
 
 // ── Dosya yükleme (markitdown ile işleme) ──────────────────────
