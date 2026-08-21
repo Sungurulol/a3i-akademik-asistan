@@ -65,6 +65,15 @@ info "MarkItDown kuruluyor (dosya işleme için)..."
 pip3 install --user --quiet 'markitdown[pdf,docx,pptx,xlsx]' 2>/dev/null
 ok "MarkItDown kuruldu"
 
+# ── Java (PDF işleme için) ────────────────────
+step "Java"
+if command -v java &>/dev/null && java -version &>/dev/null 2>&1; then
+  ok "Java kurulu"
+else
+  fail "Java bulunamadı (PDF işleme için gerekli — opendataloader-pdf, Java 11+ ister)"
+  echo "  → Kurmak için: brew install openjdk"
+fi
+
 # ── Claude Code ──────────────────────────────
 step "Claude Code"
 if command -v claude &>/dev/null; then

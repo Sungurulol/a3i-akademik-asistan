@@ -9,6 +9,7 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, UnderlineType } = require('docx');
 const HTMLtoDOCX = require('./node_modules/html-to-docx');
+const { convert: convertPdf } = require('@opendataloader/pdf');
 const os = require('os');
 
 const app = express();
@@ -400,7 +401,7 @@ app.post('/api/title', async (req, res) => {
   }
 });
 
-// ── Dosya yükleme (markitdown ile işleme) ──────────────────────
+// ── Dosya yükleme (PDF: opendataloader-pdf, diğer: markitdown) ──
 const UPLOADS_DIR = path.join(__dirname, '../uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
@@ -432,14 +433,45 @@ function runMarkitdown(filePath) {
   });
 }
 
+// PDF'leri opendataloader-pdf (Java tabanlı) ile markdown'a çevirir.
+// Java kurulu değilse convert() reddedilir; hata çağırana bırakılır.
+async function runOpenDataLoaderPdf(filePath) {
+  const outputDir = path.join(UPLOADS_DIR, 'odl-' + uuidv4().slice(0, 8));
+  fs.mkdirSync(outputDir, { recursive: true });
+  try {
+    await convertPdf([filePath], { outputDir, format: 'markdown' });
+    const mdFile = fs.readdirSync(outputDir).find(f => f.endsWith('.md'));
+    if (!mdFile) return null;
+    return fs.readFileSync(path.join(outputDir, mdFile), 'utf8').trim();
+  } finally {
+    fs.rm(outputDir, { recursive: true, force: true }, () => {});
+  }
+}
+
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Dosya yok' });
   const { path: tmpPath, originalname } = req.file;
+  const isPdf = /\.pdf$/i.test(originalname);
   try {
-    let text = await runMarkitdown(tmpPath);
-    if (!text) {
-      // markitdown başarısızsa ham metin olarak oku (txt/md gibi dosyalar için)
-      try { text = fs.readFileSync(tmpPath, 'utf8').slice(0, 12000); } catch { text = null; }
+    let text = null;
+    if (isPdf) {
+      try {
+        text = await runOpenDataLoaderPdf(tmpPath);
+      } catch (e) {
+        console.error('[opendataloader-pdf] Hata:', e.message);
+        fs.unlink(tmpPath, () => {});
+        return res.status(500).json({ error: 'PDF işlenemedi, Java 11+ kurulu olmalı (https://adoptium.net)' });
+      }
+      if (!text) {
+        fs.unlink(tmpPath, () => {});
+        return res.status(500).json({ error: 'PDF işlenemedi, Java 11+ kurulu olmalı (https://adoptium.net)' });
+      }
+    } else {
+      text = await runMarkitdown(tmpPath);
+      if (!text) {
+        // markitdown başarısızsa ham metin olarak oku (txt/md gibi dosyalar için)
+        try { text = fs.readFileSync(tmpPath, 'utf8').slice(0, 12000); } catch { text = null; }
+      }
     }
     fs.unlink(tmpPath, () => {});
     if (!text) return res.status(500).json({ error: 'Dosya işlenemedi' });

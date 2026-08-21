@@ -18,7 +18,7 @@ cd /d "%SCRIPT_DIR%"
 
 :: ── Chocolatey ──────────────────────────────
 echo.
-echo  [1/6] Chocolatey kontrol ediliyor...
+echo  [1/7] Chocolatey kontrol ediliyor...
 where choco >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
   echo  Chocolatey kuruluyor...
@@ -30,7 +30,7 @@ IF %ERRORLEVEL% NEQ 0 (
 
 :: ── Node.js ─────────────────────────────────
 echo.
-echo  [2/6] Node.js kontrol ediliyor...
+echo  [2/7] Node.js kontrol ediliyor...
 where node >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
   echo  Node.js kuruluyor...
@@ -43,7 +43,7 @@ IF %ERRORLEVEL% NEQ 0 (
 
 :: ── Python & MarkItDown ─────────────────────
 echo.
-echo  [3/6] Python kontrol ediliyor...
+echo  [3/7] Python kontrol ediliyor...
 where python >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
   echo  Python kuruluyor...
@@ -58,9 +58,20 @@ echo  MarkItDown kuruluyor (dosya isleme icin)...
 pip install --user "markitdown[pdf,docx,pptx,xlsx]" --quiet
 echo  MarkItDown kuruldu.
 
+:: ── Java (PDF isleme icin) ──────────────────
+echo.
+echo  [4/7] Java kontrol ediliyor...
+where java >nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+  echo  [UYARI] Java bulunamadi. PDF isleme icin Java 11+ gereklidir ^(opendataloader-pdf^).
+  echo  Kurmak icin: choco install openjdk
+) ELSE (
+  echo  Java zaten kurulu.
+)
+
 :: ── Claude Code ─────────────────────────────
 echo.
-echo  [4/6] Claude Code kontrol ediliyor...
+echo  [5/7] Claude Code kontrol ediliyor...
 where claude >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
   echo  Claude Code kuruluyor...
@@ -72,7 +83,7 @@ IF %ERRORLEVEL% NEQ 0 (
 
 :: ── npm paketleri ───────────────────────────
 echo.
-echo  [5/6] Backend paketleri kuruluyor...
+echo  [6/7] Backend paketleri kuruluyor...
 cd "%SCRIPT_DIR%backend"
 npm install
 cd "%SCRIPT_DIR%"
@@ -80,7 +91,7 @@ echo  Paketler hazır.
 
 :: ── Skills repo ─────────────────────────────
 echo.
-echo  [6/6] Akademik skill dosyaları indiriliyor...
+echo  [7/7] Akademik skill dosyaları indiriliyor...
 IF NOT EXIST "%SCRIPT_DIR%skills\academic-research-skills\.claude" (
   IF NOT EXIST "%SCRIPT_DIR%skills" mkdir "%SCRIPT_DIR%skills"
   git clone https://github.com/Imbad0202/academic-research-skills.git "%SCRIPT_DIR%skills\academic-research-skills"
