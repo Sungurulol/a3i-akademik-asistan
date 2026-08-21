@@ -104,6 +104,22 @@ else
   ok "Skills indirildi"
 fi
 
+# ── Ek skill: grad-grounded-theory ───────────
+if [ -d "$SCRIPT_DIR/skills/academic-research-skills/grad-grounded-theory" ]; then
+  ok "grad-grounded-theory skill zaten mevcut"
+else
+  info "grad-grounded-theory skill indiriliyor..."
+  TMP_SKILLS_DIR=$(mktemp -d)
+  if git clone --depth 1 --quiet https://github.com/asgard-ai-platform/skills.git "$TMP_SKILLS_DIR" 2>/dev/null \
+    && [ -d "$TMP_SKILLS_DIR/grad-grounded-theory" ]; then
+    cp -r "$TMP_SKILLS_DIR/grad-grounded-theory" "$SCRIPT_DIR/skills/academic-research-skills/"
+    ok "grad-grounded-theory skill indirildi"
+  else
+    fail "grad-grounded-theory skill indirilemedi"
+  fi
+  rm -rf "$TMP_SKILLS_DIR"
+fi
+
 # ── Claude oturumu ───────────────────────────
 step "Claude Hesabı"
 if claude auth status &>/dev/null 2>&1; then

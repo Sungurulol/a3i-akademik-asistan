@@ -102,6 +102,21 @@ IF NOT EXIST "%SCRIPT_DIR%skills\academic-research-skills\.claude" (
   echo  Skills zaten mevcut.
 )
 
+:: ── Ek skill: grad-grounded-theory ──────────
+IF EXIST "%SCRIPT_DIR%skills\academic-research-skills\grad-grounded-theory" GOTO SKIP_GRAD_SKILL
+echo  grad-grounded-theory skill indiriliyor...
+SET "TMP_SKILLS_DIR=%TEMP%\asgard-skills-%RANDOM%"
+git clone --depth 1 --quiet https://github.com/asgard-ai-platform/skills.git "%TMP_SKILLS_DIR%"
+IF NOT EXIST "%TMP_SKILLS_DIR%\grad-grounded-theory" (
+  echo  [UYARI] grad-grounded-theory skill indirilemedi.
+  GOTO CLEANUP_GRAD_SKILL
+)
+xcopy /e /i /y "%TMP_SKILLS_DIR%\grad-grounded-theory" "%SCRIPT_DIR%skills\academic-research-skills\grad-grounded-theory\" >nul
+echo  grad-grounded-theory skill indirildi.
+:CLEANUP_GRAD_SKILL
+rmdir /s /q "%TMP_SKILLS_DIR%" 2>nul
+:SKIP_GRAD_SKILL
+
 :: ── Claude oturumu ───────────────────────────
 echo.
 echo  Claude hesabınıza giriş yapılacak.
