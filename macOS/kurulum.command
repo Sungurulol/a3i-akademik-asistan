@@ -70,8 +70,9 @@ step "Java"
 if command -v java &>/dev/null && java -version &>/dev/null 2>&1; then
   ok "Java kurulu"
 else
-  fail "Java bulunamadı (PDF işleme için gerekli — opendataloader-pdf, Java 11+ ister)"
-  echo "  → Kurmak için: brew install openjdk"
+  info "Java kuruluyor (Temurin JDK, PDF işleme için)..."
+  brew install --cask temurin
+  ok "Java kuruldu"
 fi
 
 # ── Claude Code ──────────────────────────────

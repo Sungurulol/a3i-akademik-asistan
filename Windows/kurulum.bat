@@ -63,8 +63,10 @@ echo.
 echo  [4/7] Java kontrol ediliyor...
 where java >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
-  echo  [UYARI] Java bulunamadi. PDF isleme icin Java 11+ gereklidir ^(opendataloader-pdf^).
-  echo  Kurmak icin: choco install openjdk
+  echo  Java kuruluyor...
+  choco install openjdk -y
+  CALL refreshenv
+  echo  Java kuruldu.
 ) ELSE (
   echo  Java zaten kurulu.
 )
