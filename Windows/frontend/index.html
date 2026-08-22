@@ -647,6 +647,53 @@ button{background:none;border:none;cursor:pointer}
 .btn-danger{background:var(--red);border-color:var(--red);color:#fff}
 .btn-danger:hover{filter:brightness(1.08)}
 
+/* ── Soru pop-up'ı ──────────────────────────────────────── */
+.sheet-ask{width:min(520px,calc(100vw - 40px));max-height:min(78vh,720px);display:flex;flex-direction:column}
+.sheet-ask h3,.sheet-ask .sheet-grip,.sheet-ask .sheet-btns{flex-shrink:0}
+/* min-height:0 şart: flex öğesi varsayılan olarak içeriğinden küçülemez,
+   onsuz kaydırma alanı büyüyüp sayfayı taşırıyor. */
+.ask-scroll{flex:1;min-height:0;overflow-y:auto;margin:0 -4px 16px;padding:0 4px}
+.ask-scroll::-webkit-scrollbar{width:7px}
+.ask-scroll::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:4px;border:2px solid transparent;background-clip:content-box}
+.ask-q + .ask-q{margin-top:20px;padding-top:20px;border-top:1px solid var(--line)}
+.ask-tag{
+  display:inline-block;font-size:10px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--accent);background:var(--accent-soft);
+  border-radius:5px;padding:2px 7px;margin-bottom:8px;
+}
+.ask-text{font-size:14.5px;font-weight:600;letter-spacing:-.012em;line-height:1.35;margin-bottom:11px}
+.ask-opt{
+  display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;
+  padding:10px 12px;border-radius:var(--r);margin-bottom:6px;
+  background:var(--surface);border:1px solid var(--line);
+  transition:border-color 130ms ease,background 130ms ease,transform 100ms ease-out;
+}
+.ask-opt:hover{border-color:var(--line-2);background:var(--surface-2)}
+.ask-opt:active{transform:scale(.99)}
+.ask-opt.on{border-color:var(--accent);background:var(--accent-soft)}
+.ask-mark{
+  width:17px;height:17px;flex-shrink:0;margin-top:1px;
+  border:1.5px solid var(--line-2);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color 130ms ease,background 130ms ease;
+}
+.ask-mark.radio{border-radius:50%}
+.ask-mark.check{border-radius:5px}
+.ask-opt.on .ask-mark{border-color:var(--accent);background:var(--accent)}
+.ask-mark svg{width:10px;height:10px;stroke:var(--on-accent);stroke-width:3;fill:none;opacity:0}
+.ask-opt.on .ask-mark svg{opacity:1}
+.ask-obody{min-width:0;flex:1}
+.ask-olabel{display:block;font-size:13.5px;letter-spacing:-.005em}
+.ask-odesc{display:block;font-size:11.5px;line-height:1.4;color:var(--text-3);margin-top:2px}
+.ask-other{margin-top:2px}
+.ask-other input{
+  width:100%;background:var(--surface);border:1px solid var(--line-2);
+  border-radius:var(--r-sm);padding:9px 11px;font-size:13.5px;outline:none;
+  margin-top:6px;transition:border-color 140ms ease,box-shadow 140ms ease;
+}
+.ask-other input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.ask-other input::placeholder{color:var(--text-3)}
+
 /* ── Bildirim ───────────────────────────────────────────── */
 .toast{
   position:fixed;left:50%;bottom:96px;z-index:120;
@@ -821,6 +868,16 @@ button{background:none;border:none;cursor:pointer}
   </div>
 </div>
 
+<div class="sheet sheet-ask" id="sheet-ask">
+  <div class="sheet-grip"></div>
+  <h3 id="ask-title">Birkaç şeyi netleştirelim</h3>
+  <div class="ask-scroll" id="ask-body"></div>
+  <div class="sheet-btns">
+    <button class="btn" onclick="closeSheet('sheet-ask')">Vazgeç</button>
+    <button class="btn btn-primary" id="ask-submit" onclick="submitAnswers()">Devam et</button>
+  </div>
+</div>
+
 <div class="popover" id="engine-pop"></div>
 <div class="toast" id="toast"></div>
 
@@ -979,12 +1036,19 @@ const ICONS = {
 };
 
 /* Modlar — hem karşılama kartlarını hem rıhtım çiplerini besleyen tek kaynak */
+/* kick: tuşa basınca gönderilen açılış mesajı. Claude sistem promptundaki
+   soru protokolü sayesinde önce seçenekli soruları sorup sonra işe başlar. */
 const MODES = [
-  { id:'arastirma', label:'Araştırma',   desc:'Sistematik literatür taraması',      icon:'search' },
-  { id:'makale',    label:'Makale yaz',  desc:'Baştan sona akademik makale',        icon:'doc' },
-  { id:'plan',      label:'Planla',      desc:'Adım adım makale planı',             icon:'list' },
-  { id:'hakem',     label:'Hakem incele',desc:'Beş perspektiften değerlendirme',    icon:'shield' },
-  { id:'pipeline',  label:'Tam Sistem',  desc:'Araştırmadan makaleye 10 aşama',     icon:'layers' },
+  { id:'arastirma', label:'Araştırma',   desc:'Sistematik literatür taraması',      icon:'search',
+    kick:'Sistematik bir literatür taraması yapmanı istiyorum.' },
+  { id:'makale',    label:'Makale yaz',  desc:'Baştan sona akademik makale',        icon:'doc',
+    kick:'Akademik bir makale yazmanı istiyorum.' },
+  { id:'plan',      label:'Planla',      desc:'Adım adım makale planı',             icon:'list',
+    kick:'Bir makale için adım adım plan çıkarmanı istiyorum.' },
+  { id:'hakem',     label:'Hakem incele',desc:'Beş perspektiften değerlendirme',    icon:'shield',
+    kick:'Bir metni hakem gözüyle incelemeni istiyorum.' },
+  { id:'pipeline',  label:'Tam Sistem',  desc:'Araştırmadan makaleye 10 aşama',     icon:'layers',
+    kick:'Araştırmadan makaleye tam süreci baştan sona işletmeni istiyorum.' },
 ];
 const MODE_LABEL = Object.fromEntries(MODES.map(m => [m.id, m.label]));
 
@@ -1089,10 +1153,7 @@ function renderWelcome(){
       </div>
     </div>`;
   el.querySelectorAll('.mode-card').forEach(card => {
-    card.addEventListener('click', () => {
-      selectMode(card.dataset.mode);
-      document.getElementById('input').focus();
-    });
+    card.addEventListener('click', () => startMode(card.dataset.mode));
   });
 }
 function renderChips(){
@@ -1100,17 +1161,28 @@ function renderChips(){
   el.innerHTML = MODES.map(m =>
     `<button class="chip${currentMode === m.id ? ' on' : ''}" data-mode="${m.id}">${m.label}</button>`).join('');
   el.querySelectorAll('.chip').forEach(c => {
-    c.addEventListener('click', () => selectMode(c.dataset.mode));
+    c.addEventListener('click', () => startMode(c.dataset.mode));
   });
 }
-function selectMode(mode){
-  currentMode = (currentMode === mode) ? null : mode;
+
+/* Hazır tuş: modu seçer VE açılış mesajını gönderir.
+   Kullanıcı bir şey yazmadan Claude seçenekli sorularını sorabilsin diye. */
+function startMode(mode){
+  if (isGenerating){ showToast('Önce mevcut yanıtın bitmesini bekleyin'); return; }
+  const m = MODES.find(x => x.id === mode);
+  if (!m) return;
+  setModeLabel(mode);
+  sendText(m.kick);
+}
+
+function setModeLabel(mode){
+  currentMode = mode;
   const pill = document.getElementById('mode-pill');
-  document.getElementById('mode-pill-text').textContent = currentMode ? MODE_LABEL[currentMode] : 'Mod seçilmedi';
-  pill.classList.toggle('on', !!currentMode);
+  document.getElementById('mode-pill-text').textContent = mode ? MODE_LABEL[mode] : 'Mod seçilmedi';
+  pill.classList.toggle('on', !!mode);
   renderChips();
   document.querySelectorAll('.mode-card').forEach(c =>
-    c.classList.toggle('on', c.dataset.mode === currentMode));
+    c.classList.toggle('on', c.dataset.mode === mode));
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1306,6 +1378,7 @@ function openSheet(id){
   st.progS.set(1, { damping:0.85, response:0.36 });
 }
 function closeSheet(id, velocity = 0){
+  if (id === 'sheet-ask') askSpec = null;   // vazgeçildiyse yarım kalan soru durumu asılı kalmasın
   const st = sheetState(id);
   scrimSpring.set(0);
   st.progS.set(0, { damping:1, response:0.26 });
@@ -1748,24 +1821,39 @@ function appendToken(text){
   if (!currentGroup) startAssistantGroup();
   currentText += text;
   const { body, caret } = currentGroup;
-  body.innerHTML = renderMd(currentText);
+  // Soru bloğu yarım gelirken ham JSON ekrana yazılmasın
+  body.innerHTML = renderMd(stripPartialAsk(currentText));
   body.appendChild(caret);
   scrollBottom();
 }
 function finishGroup(){
+  let pendingAsk = null;
+
   if (currentGroup){
     const { el, body, caret } = currentGroup;
     caret.remove();
-    body.innerHTML = renderMd(currentText);
-    el.appendChild(buildActions(currentText));
-    saveToSession({ role:'assistant', text:currentText });
-    renderHistory();
+
+    const { clean, spec } = extractQuestions(currentText);
+    pendingAsk = spec;
+
+    if (spec && !clean){
+      // Yanıt yalnızca sorulardan ibaret — boş baloncuk bırakma
+      el.remove();
+    } else {
+      body.innerHTML = renderMd(clean);
+      el.appendChild(buildActions(clean));
+      saveToSession({ role:'assistant', text: clean });
+      renderHistory();
+    }
     currentGroup = null; currentText = '';
   }
+
   isGenerating = false;
   document.getElementById('send').disabled = false;
   document.getElementById('stop').classList.remove('on');
   hideActivity();
+
+  if (pendingAsk) openAsk(pendingAsk);
 }
 
 const SVG_COPY = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
@@ -1802,6 +1890,112 @@ function buildActions(text){
 
   acts.append(copy, dl, pptx);
   return acts;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   16b — SORU POP-UP'I
+   Claude'un --print modunda AskUserQuestion aracı yok; bu yüzden
+   sorular yanıt metnine gömülü bir ```a3i-soru bloğuyla geliyor.
+   Blok metinden ayıklanır (kullanıcıya ham JSON görünmez) ve
+   yerine seçenekli bir pop-up açılır.
+   ═══════════════════════════════════════════════════════════ */
+const ASK_RE = /```a3i-soru\s*([\s\S]*?)```/;
+
+function extractQuestions(text){
+  const m = text.match(ASK_RE);
+  if (!m) return { clean: text, spec: null };
+  let spec = null;
+  try {
+    const parsed = JSON.parse(m[1].trim());
+    if (Array.isArray(parsed?.questions) && parsed.questions.length) spec = parsed;
+  } catch {}
+  return { clean: text.replace(ASK_RE, '').trim(), spec };
+}
+
+/* Akış sırasında blok yarım gelmiş olabilir — açılışı görünce gerisini gizle,
+   yoksa kullanıcı yarım JSON'un ekrana yazıldığını görür. */
+function stripPartialAsk(text){
+  const i = text.indexOf('```a3i-soru');
+  return i === -1 ? text : text.slice(0, i).trim();
+}
+
+let askSpec = null;
+let askState = [];      // her soru için { secili:Set, diger:string }
+
+function openAsk(spec){
+  askSpec = spec;
+  askState = spec.questions.map(() => ({ secili: new Set(), diger: '' }));
+  document.getElementById('ask-title').textContent =
+    spec.questions.length > 1 ? 'Birkaç şeyi netleştirelim' : 'Bir şeyi netleştirelim';
+  renderAsk();
+  openSheet('sheet-ask');
+}
+
+function renderAsk(){
+  const body = document.getElementById('ask-body');
+  body.innerHTML = askSpec.questions.map((q, qi) => {
+    const multi = !!q.multiSelect;
+    const opts = (q.options || []).map((o, oi) => `
+      <button class="ask-opt${askState[qi].secili.has(oi) ? ' on' : ''}" data-q="${qi}" data-o="${oi}">
+        <span class="ask-mark ${multi ? 'check' : 'radio'}">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <span class="ask-obody">
+          <span class="ask-olabel">${escHtml(o.label ?? '')}</span>
+          ${o.description ? `<span class="ask-odesc">${escHtml(o.description)}</span>` : ''}
+        </span>
+      </button>`).join('');
+    return `<div class="ask-q">
+      ${q.header ? `<span class="ask-tag">${escHtml(String(q.header).slice(0,14))}</span>` : ''}
+      <div class="ask-text">${escHtml(q.question ?? '')}</div>
+      ${opts}
+      <div class="ask-other">
+        <input type="text" data-q="${qi}" placeholder="Diğer — kendi cevabınızı yazın"
+               value="${escHtml(askState[qi].diger)}">
+      </div>
+    </div>`;
+  }).join('');
+
+  body.querySelectorAll('.ask-opt').forEach(b => {
+    b.addEventListener('click', () => {
+      const qi = +b.dataset.q, oi = +b.dataset.o;
+      const st = askState[qi];
+      if (askSpec.questions[qi].multiSelect){
+        st.secili.has(oi) ? st.secili.delete(oi) : st.secili.add(oi);
+      } else {
+        const vardi = st.secili.has(oi);
+        st.secili.clear();
+        if (!vardi) st.secili.add(oi);   // aynısına tekrar basınca seçim kalkar
+      }
+      renderAsk();
+    });
+  });
+  body.querySelectorAll('.ask-other input').forEach(inp => {
+    inp.addEventListener('input', () => { askState[+inp.dataset.q].diger = inp.value; });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter'){ e.preventDefault(); submitAnswers(); }
+    });
+  });
+}
+
+function submitAnswers(){
+  if (!askSpec) return;
+  const satirlar = [];
+  let bosVar = false;
+
+  askSpec.questions.forEach((q, qi) => {
+    const st = askState[qi];
+    const secilenler = [...st.secili].map(i => q.options[i]?.label).filter(Boolean);
+    if (st.diger.trim()) secilenler.push(st.diger.trim());
+    if (!secilenler.length){ bosVar = true; return; }
+    satirlar.push(`${q.question}\n→ ${secilenler.join(', ')}`);
+  });
+
+  if (bosVar){ showToast('Lütfen her soruyu yanıtlayın'); return; }
+
+  closeSheet('sheet-ask');
+  askSpec = null;
+  sendText('Cevaplarım:\n\n' + satirlar.join('\n\n'));
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2035,18 +2229,32 @@ async function sendMessage(){
     renderFiles();
   }
 
-  addMessage('user', text + (names.length ? `\n\n📎 ${names.join(', ')}` : ''));
-  saveToSession({ role:'user', text: fullText });
-  renderHistory();
   input.value = '';
   autoResize(input);
+  dispatch(fullText, text + (names.length ? `\n\n📎 ${names.join(', ')}` : ''));
+}
 
-  let contextText = fullText;
+/* Girdi kutusundan bağımsız gönderim — soru cevapları ve hazır tuşlar için. */
+function sendText(text, gorunen){
+  if (!text || isGenerating) return false;
+  if (!ws || ws.readyState !== WebSocket.OPEN){ showToast('Bağlantı yok, bekleyin…'); return false; }
+  hideWelcome();
+  dispatch(text, gorunen ?? text);
+  return true;
+}
+
+/* Ortak gönderim: baloncuğu çiz, oturuma kaydet, WS'e yolla. */
+function dispatch(text, gorunen){
+  addMessage('user', gorunen);
+  saveToSession({ role:'user', text });
+  renderHistory();
+
+  let contextText = text;
   const s = sessions[activeSessionIdx];
   if (s && s.msgs.length > 1 && !s._contextInjected){
     const history = s.msgs.slice(0, -1)
       .map(m => `[${m.role === 'user' ? 'Kullanıcı' : 'Asistan'}]: ${m.text}`).join('\n\n');
-    contextText = `Önceki konuşma geçmişimiz (devam ediyoruz):\n\n${history}\n\n---\n\nYeni mesaj: ${fullText}`;
+    contextText = `Önceki konuşma geçmişimiz (devam ediyoruz):\n\n${history}\n\n---\n\nYeni mesaj: ${text}`;
     s._contextInjected = true;
   }
 
@@ -2064,6 +2272,7 @@ function newChat(){
   if (isGenerating){ showToast('Önce yanıtı durdurun'); return; }
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type:'new_session' }));
   activeSessionIdx = -1; claudeSessionId = null; currentChatFolder = null;
+  setModeLabel(null);            // mod artık Claude'a gidiyor — yeni sohbete taşınmasın
   clearThread();
   renderHistory();
   document.getElementById('input').focus();

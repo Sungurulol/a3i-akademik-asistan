@@ -154,11 +154,11 @@ async function handleChat(ws, wsId, msg) {
   if (!entry) {
     entry = startClaudeProcess(ws, wsId, mode, { model, effort });
     activeProcs.set(wsId, entry);
-  } else if (entry.model !== model || entry.effort !== effort) {
-    // Model/effort başlatma bayrağı — değiştiyse süreci yeniden başlat.
-    // --resume ile aynı session'a dönüldüğü için konuşma bağlamı korunur.
+  } else if (entry.model !== model || entry.effort !== effort || entry.mode !== (mode || null)) {
+    // model/effort/mod üçü de başlatma bayrağı (mod --append-system-prompt'a gömülü),
+    // biri değiştiyse süreci yeniden başlat. --resume ile bağlam korunur.
     const prevSessionId = entry.sessionId;
-    console.log(`[${wsId}] Model/effort değişti → yeniden başlatılıyor (${entry.model || 'varsayılan'}/${entry.effort || 'varsayılan'} → ${model || 'varsayılan'}/${effort || 'varsayılan'})`);
+    console.log(`[${wsId}] Ayar değişti → yeniden başlatılıyor (${entry.model || 'varsayılan'}/${entry.effort || 'varsayılan'}/${entry.mode || 'modsuz'} → ${model || 'varsayılan'}/${effort || 'varsayılan'}/${mode || 'modsuz'})`);
     send(ws, { type: 'model_switching', model, effort });
     await killProc(wsId);          // eski süreç kapanana kadar bekle (session diske yazılsın)
 
@@ -247,11 +247,32 @@ function startClaudeProcess(ws, wsId, mode, opts = {}) {
     hakem:     'academic-paper-reviewer full mode — 5 perspektiften hakem incelemesi yap',
     pipeline:  'academic-pipeline — araştırmadan makaleye tam 10 aşamalı süreç',
   };
-  const modeHint = modeHints[mode] || modeHints['makale'];
+  const modeHint = mode ? (modeHints[mode] || null) : null;
 
-  const appendPrompt = `Sen Türkçe konuşan bir akademik araştırma asistanısın. 
-Tüm yanıtlarını Türkçe ver. Akademik içerik (atıflar, terimler) gerektiğinde İngilizce olabilir ama açıklamalar Türkçe olmalı.
-Aktif mod: ${modeHint}.`;
+  const appendPrompt = `Sen Türkçe konuşan bir akademik araştırma asistanısın.
+Tüm yanıtlarını Türkçe ver. Akademik içerik (atıflar, terimler) gerektiğinde İngilizce
+olabilir ama açıklamalar Türkçe olmalı. Düşünme/ara adım cümlelerini ("Let me...",
+"I'll now...") kullanıcıya yazma; sadece sonucu ver.
+${modeHint ? `Aktif mod: ${modeHint}.` : ''}
+
+SORU SORMA PROTOKOLÜ
+Kapsamlı bir işe (makale, plan, tarama, inceleme, sunum) başlamadan önce netleşmesi
+gereken şeyler varsa, düz metinle SORMA. Bunun yerine yanıtın SADECE şu blok olsun:
+
+\`\`\`a3i-soru
+{"questions":[{"header":"Kısa etiket","question":"Soru cümlesi?","multiSelect":false,"options":[{"label":"Seçenek","description":"Ne anlama geldiği"}]}]}
+\`\`\`
+
+Kurallar:
+- En fazla 3 soru; her soruda 2-4 seçenek.
+- "header" en fazla 14 karakter (pop-up'ta etiket olarak görünür).
+- Kullanıcı zaten "Diğer" seçip serbest metin yazabiliyor — sen "Diğer"/"Başka"
+  seçeneği EKLEME.
+- Birden fazla seçenek işaretlenebilecekse "multiSelect": true ver.
+- Bloğun dışına tek kelime bile yazma. Blok geldiğinde kullanıcıya pop-up gösterilir,
+  metin olarak görünmez.
+- Cevaplar geldikten sonra soru sormadan işe başla.
+- Sadece cevap işi gerçekten değiştirecekse sor; makul varsayımla ilerleyebiliyorsan sorma.`;
 
   const claudeArgs = [
     '--print',
@@ -260,6 +281,7 @@ Aktif mod: ${modeHint}.`;
     '--input-format', 'stream-json',
     '--include-partial-messages',
     '--dangerously-skip-permissions',
+    '--append-system-prompt', appendPrompt,
   ];
 
   // Resume ederken --session-id verilmez; --resume zaten session'ı belirler
@@ -278,7 +300,7 @@ Aktif mod: ${modeHint}.`;
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 
-  const entry = { proc, sessionId, buffer: '', initialized: false, ws, streamedLen: 0, model, effort };
+  const entry = { proc, sessionId, buffer: '', initialized: false, ws, streamedLen: 0, model, effort, mode: mode || null };
 
   proc.stdout.on('data', (chunk) => {
     entry.buffer += chunk.toString();
