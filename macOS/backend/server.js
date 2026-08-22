@@ -337,9 +337,14 @@ Kurallar:
   metin olarak görünmez.
 - Cevaplar geldikten sonra soru sormadan işe başla.
 - Sadece cevap işi gerçekten değiştirecekse sor; makul varsayımla ilerleyebiliyorsan sorma.
-- Şıklar ALAN BAĞLAMI'ndaki gibi somut olsun (ör. "Elit futbolcu (18-25 yaş)",
-  "8 haftalık HIIT müdahalesi", "Ölçek uyarlama"). "Diğer alan", "Genel",
-  "Belirsiz" gibi içi boş şıklar koyma — kullanıcı zaten serbest metin yazabiliyor.`;
+- Sorulardan EN FAZLA BİRİ alana özgü olsun (alt alan, branş, örneklem, ölçüm
+  gibi ALAN BAĞLAMI'na dayanan sorular). Kalan sorular işin genel biçimini
+  netleştirsin: çalışma/makale türü, dil, kapsam ve uzunluk, hedef dergi düzeyi,
+  elde hazır veri veya literatür olup olmadığı, istenen çıktı biçimi, teslim
+  önceliği. Üç sorunun üçü birden spor bilimlerine dair OLMASIN.
+- Şıklar somut olsun (ör. "Elit futbolcu (18-25 yaş)", "Ölçek uyarlama",
+  "6.000-8.000 kelime"). "Genel", "Belirsiz", "Diğer alan" gibi içi boş şıklar
+  koyma — kullanıcı zaten serbest metin yazabiliyor.`;
 
   const claudeArgs = [
     '--print',
