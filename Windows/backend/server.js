@@ -318,13 +318,16 @@ function startClaudeProcess(ws, wsId, mode, opts = {}) {
   linkSkills(sessionDir);
 
   // İlk sistem mesajı — Türkçe + mod yönlendirmesi
+  // Yalnızca arayüzdeki hazır tuşların karşılıkları.
+  // Buradan kaldırılan yetenekler kaybolmaz: academic-pipeline (tam süreç),
+  // academic-paper'ın plan/outline/revision modları ve academic-pptx-skill
+  // serbest metinle istendiğinde Claude tarafından zaten bulunup kullanılır.
   const modeHints = {
     arastirma: 'deep-research full mode — sistematik literatür taraması yap',
-    socratik:  'deep-research socratic mode — kullanıcıyı Sokratik diyalogla yönlendir',
     makale:    'academic-paper full mode — baştan sona akademik makale yaz',
-    plan:      'academic-paper plan mode — adım adım makale planla',
+    nitel:     'grad-grounded-theory — nitel veri analizi: açık/eksenel/seçici kodlama, '
+             + 'kod defteri/kod sistemi ve NVivo ya da MAXQDA’ya aktarılabilir çıktı',
     hakem:     'academic-paper-reviewer full mode — 5 perspektiften hakem incelemesi yap',
-    pipeline:  'academic-pipeline — araştırmadan makaleye tam 10 aşamalı süreç',
   };
   const modeHint = mode ? (modeHints[mode] || null) : null;
 
