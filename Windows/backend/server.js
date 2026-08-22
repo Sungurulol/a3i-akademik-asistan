@@ -243,7 +243,9 @@ rehabilitasyon, engellilerde spor/adapte fiziksel aktivite, performans analizi.
 
 Bu alanda tipik olarak netleşmesi gereken şeyler — sorularını bunlardan seç:
 - Çalışma deseni: deneysel/RCT, ön test-son test, kesitsel, boylamsal,
-  ölçek geliştirme/uyarlama, sistematik derleme/meta-analiz, nitel
+  ölçek geliştirme/uyarlama, sistematik derleme/meta-analiz,
+  NİTEL (görüşme/odak grup, gömülü kuram, fenomenoloji, durum çalışması),
+  karma yöntem
 - Örneklem: elit sporcu, amatör/rekreasyonel, çocuk-genç sporcu, üniversite
   öğrencisi, sedanter yetişkin, yaşlı, engelli sporcu; cinsiyet ve yaş aralığı
 - Branş: takım (futbol, basketbol, voleybol, hentbol) veya bireysel
@@ -253,7 +255,11 @@ Bu alanda tipik olarak netleşmesi gereken şeyler — sorularını bunlardan se
   ölçek/anket puanları
 - Uygulama/müdahale: direnç antrenmanı, HIIT, pliometrik, kor, esneklik,
   zihinsel antrenman, beslenme desteği
-- Hedef dergi düzeyi: SSCI/SCI-E, ESCI, Scopus, TR Dizin`;
+- Hedef dergi düzeyi: SSCI/SCI-E, ESCI, Scopus, TR Dizin
+
+Nitel bir çalışma söz konusuysa (görüşme, odak grup, gözlem, açık uçlu veri;
+kuram geliştirme, kodlama, teorik doygunluk) grad-grounded-theory skill'ini
+kullan — açık/eksenel/seçici kodlama ve sürekli karşılaştırma buradan gelir.`;
 
 // Akademik skill'leri hedef klasöre symlink'ler + CLAUDE.md'yi kopyalar.
 // Hem sohbet oturumları hem sunum üretimi aynı skill setini görsün diye ortak.
@@ -344,7 +350,10 @@ Kurallar:
   önceliği. Üç sorunun üçü birden spor bilimlerine dair OLMASIN.
 - Şıklar somut olsun (ör. "Elit futbolcu (18-25 yaş)", "Ölçek uyarlama",
   "6.000-8.000 kelime"). "Genel", "Belirsiz", "Diğer alan" gibi içi boş şıklar
-  koyma — kullanıcı zaten serbest metin yazabiliyor.`;
+  koyma — kullanıcı zaten serbest metin yazabiliyor.
+- Çalışma deseni veya makale türü soruyorsan şıklardan biri MUTLAKA nitel
+  araştırma olsun (ör. "Nitel — görüşme/odak grup"). Nicel desenlerle
+  doldurup nitel seçeneğini atlama.`;
 
   const claudeArgs = [
     '--print',
