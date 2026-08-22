@@ -297,7 +297,9 @@ button{background:none;border:none;cursor:pointer}
   font-size:10px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
   color:var(--accent);background:var(--accent-soft);border-radius:5px;padding:1px 5px;
 }
-.engine-btn .caret{width:11px;height:11px;stroke:var(--text-3);stroke-width:2.4;fill:none}
+/* NOT: 'caret' adı mesajlardaki yanıp sönen yazma imlecine ait — burada
+   kullanılırsa ok da blink animasyonunu miras alır. Ayrı ad şart. */
+.engine-btn .chev{width:11px;height:11px;stroke:var(--text-3);stroke-width:2.4;fill:none}
 
 /* Popover — tetikleyicisinden doğar */
 .popover{
@@ -448,8 +450,10 @@ button{background:none;border:none;cursor:pointer}
 .hljs-attr,.hljs-attribute,.hljs-variable,.hljs-type{color:var(--syn-attr)}
 .hljs-emphasis{font-style:italic}.hljs-strong{font-weight:600}
 
-/* Yazma imleci */
-.caret{
+/* Yazma imleci — yalnızca mesaj gövdesi içinde.
+   Kapsam dar tutulur: global '.caret' olsaydı aynı adı taşıyan başka bir
+   ikon da yanıp sönerdi (daha önce model düğmesindeki okta bu oldu). */
+.msg-body .caret{
   display:inline-block;width:2px;height:1.05em;vertical-align:text-bottom;
   background:var(--accent);margin-left:2px;border-radius:1px;
   animation:blink 1.05s steps(1) infinite;
@@ -741,7 +745,7 @@ button{background:none;border:none;cursor:pointer}
         <button class="engine-btn" id="engine-btn" onclick="toggleEnginePopover(event)">
           <span id="engine-model">Varsayılan</span>
           <span class="eff" id="engine-effort" style="display:none"></span>
-          <svg class="caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
       </div>
     </header>
