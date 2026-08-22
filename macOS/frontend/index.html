@@ -52,6 +52,7 @@
   --on-accent:#ffffff;
   /* Semantik */
   --green:#34C759; --amber:#FF9F0A; --red:#FF3B30;
+  --orange:#FF9500; --purple:#AF52DE; --teal:#00A0B4; --brown:#A2845E;
   --red-soft:rgba(255,59,48,.12);
   --amber-soft:rgba(255,159,10,.14);
   /* Kod renkleri */
@@ -91,6 +92,7 @@
   --accent-soft:rgba(10,132,255,.18);
   --accent-line:rgba(10,132,255,.40);
   --green:#30D158; --amber:#FF9F0A; --red:#FF453A;
+  --orange:#FF9F0A; --purple:#BF5AF2; --teal:#40C8E0; --brown:#B59B7B;
   --red-soft:rgba(255,69,58,.16);
   --amber-soft:rgba(255,159,10,.16);
   --syn-key:#FF7AB2; --syn-str:#FF8170; --syn-num:#D9C97C;
@@ -252,13 +254,31 @@ button{background:none;border:none;cursor:pointer}
   border-radius:var(--r-sm);cursor:pointer;transition:background 120ms ease;
 }
 .file-row:hover{background:var(--surface-2)}
+/* Tür rozeti — tek bir --fc renginden hem yazı hem zemin türetilir */
 .file-ico{
   width:26px;height:26px;border-radius:7px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  background:var(--accent-soft);
-  font-size:8.5px;font-weight:700;letter-spacing:.02em;color:var(--accent);
+  font-size:8.5px;font-weight:700;letter-spacing:.02em;
   text-transform:uppercase;
+  --fc:var(--text-3);
+  color:var(--fc);
+  background:color-mix(in srgb, var(--fc) 16%, transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--fc) 22%, transparent);
 }
+.file-ico[data-t="pdf"] {--fc:var(--red)}
+.file-ico[data-t="doc"] {--fc:var(--accent)}     /* doc, docx */
+.file-ico[data-t="xls"] {--fc:var(--green)}      /* xls, xlsx, csv */
+.file-ico[data-t="ppt"] {--fc:var(--orange)}     /* ppt, pptx */
+.file-ico[data-t="img"] {--fc:var(--purple)}     /* png, jpg, svg, webp */
+.file-ico[data-t="code"]{--fc:var(--teal)}       /* js, py, json, html… */
+.file-ico[data-t="zip"] {--fc:var(--brown)}      /* zip, tar, gz */
+.file-ico[data-t="txt"] {--fc:var(--text-3)}     /* txt, md ve bilinmeyenler */
+/* Açık zeminde canlı tonlar 8.5px yazıda zayıf kontrast veriyor — rozete özel koyu varyantlar */
+:root[data-theme="light"] .file-ico[data-t="xls"] {--fc:#1B8A45}
+:root[data-theme="light"] .file-ico[data-t="ppt"] {--fc:#C96A00}
+:root[data-theme="light"] .file-ico[data-t="img"] {--fc:#8E3BC0}
+:root[data-theme="light"] .file-ico[data-t="code"]{--fc:#00808F}
+:root[data-theme="light"] .file-ico[data-t="zip"] {--fc:#7A6142}
 .file-meta{flex:1;min-width:0}
 .file-name{
   display:block;font-size:12px;color:var(--text-2);letter-spacing:-.005em;
@@ -1757,6 +1777,24 @@ async function loadFiles(){
   renderFileList();
 }
 
+/* Uzantı → renk grubu. Rozetin --fc değişkenini CSS bu gruba göre seçiyor. */
+const DOSYA_GRUPLARI = {
+  pdf:  ['pdf'],
+  doc:  ['doc','docx','odt','rtf'],
+  xls:  ['xls','xlsx','csv','tsv','ods'],
+  ppt:  ['ppt','pptx','odp','key'],
+  img:  ['png','jpg','jpeg','gif','svg','webp','heic','bmp'],
+  code: ['js','ts','py','json','html','css','sh','r','ipynb','xml','yaml','yml','tex','bib'],
+  zip:  ['zip','tar','gz','rar','7z'],
+};
+function dosyaGrubu(ext){
+  const e = (ext || '').toLowerCase();
+  for (const [grup, uzantilar] of Object.entries(DOSYA_GRUPLARI)) {
+    if (uzantilar.includes(e)) return grup;
+  }
+  return 'txt';
+}
+
 function boyutYaz(b){
   if (b < 1024) return b + ' B';
   if (b < 1024 * 1024) return Math.round(b / 1024) + ' KB';
@@ -1777,9 +1815,10 @@ function renderFileList(){
     return;
   }
   el.innerHTML = dosyalar.map((f, i) => {
-    const ext = (f.name.split('.').pop() || '?').slice(0, 4);
+    const parca = f.name.split('.');
+    const ext = parca.length > 1 ? parca.pop() : '';
     return `<div class="file-row" data-i="${i}" title="${escHtml(f.name)}">
-      <span class="file-ico">${escHtml(ext)}</span>
+      <span class="file-ico" data-t="${dosyaGrubu(ext)}">${escHtml(ext.slice(0, 4) || '—')}</span>
       <span class="file-meta">
         <span class="file-name">${escHtml(f.name)}</span>
         <span class="file-sub">${boyutYaz(f.size)} · ${tarihYaz(f.ts)}</span>
