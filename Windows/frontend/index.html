@@ -6,6 +6,16 @@
 <meta name="color-scheme" content="light dark">
 <title>A³I — Akademik Asistan AI</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIiBmaWxsPSJub25lIj4KICA8cGF0aCBkPSJNOTAgMTggTDE2OCAxNjIgSDEzMiBMOTAgODQgTDQ4IDE2MiBIMTIgWiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNOTAgNjAgTDEzOCAxNDggSDExOCBMOTAgOTYgTDYyIDE0OCBINDIgWiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNOTAgMTAwIEwxMTYgMTQ0IEgxMDIgTDkwIDEyMiBMNzggMTQ0IEg2NCBaIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=">
+<script>
+/* Tema, ilk boyamadan ÖNCE uygulanır — aksi halde varsayılan (beyaz) palet
+   bir kare görünür ve karanlık temada göz alır. Sadece 'light' | 'dark'. */
+(function(){
+  var t = null;
+  try { t = localStorage.getItem('a3i.theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark') t = 'dark';      // varsayılan: karanlık
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <style>
@@ -60,38 +70,8 @@
   --sidebar-w:264px;
 }
 
-:root:not([data-theme="light"]){
-  @media (prefers-color-scheme:dark){}
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#141416;
-    --surface:#1c1c1f;
-    --surface-2:#252529;
-    --surface-3:#303036;
-    --chrome:rgba(28,28,31,.70);
-    --chrome-deep:rgba(20,20,22,.80);
-    --scrim:rgba(0,0,0,.55);
-    --line:rgba(255,255,255,.09);
-    --line-2:rgba(255,255,255,.15);
-    --edge-light:rgba(255,255,255,.10);
-    --text:#f5f5f7;
-    --text-2:#a8a8ae;
-    --text-3:#727278;
-    --accent:#0A84FF;
-    --accent-press:#3d9bff;
-    --accent-soft:rgba(10,132,255,.18);
-    --accent-line:rgba(10,132,255,.40);
-    --green:#30D158; --amber:#FF9F0A; --red:#FF453A;
-    --red-soft:rgba(255,69,58,.16);
-    --amber-soft:rgba(255,159,10,.16);
-    --syn-key:#FF7AB2; --syn-str:#FF8170; --syn-num:#D9C97C;
-    --syn-com:#7c7c85; --syn-fn:#78C2B3; --syn-attr:#D9C97C;
-    --sh-1:0 1px 2px rgba(0,0,0,.30);
-    --sh-2:0 4px 18px rgba(0,0,0,.45);
-    --sh-3:0 20px 56px rgba(0,0,0,.60);
-  }
-}
+/* Tema yalnızca data-theme ile belirlenir (head'deki script her zaman ayarlar),
+   bu yüzden prefers-color-scheme dalı yok. */
 :root[data-theme="dark"]{
   --bg:#141416;
   --surface:#1c1c1f;
@@ -953,24 +933,26 @@ class Velocity {
 /* ═══════════════════════════════════════════════════════════
    2 — TEMA
    ═══════════════════════════════════════════════════════════ */
+/* İki tema: beyaz ve karanlık. Varsayılan karanlık.
+   Gerçek uygulama <head>'deki satır içi script'te yapılır (yanlış temanın
+   bir kare bile görünmemesi için); burası yalnızca düğmeyi ve geçişi yönetir. */
 const THEME_ICONS = {
-  system:'<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
-  light: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4.2" y1="4.2" x2="6" y2="6"/><line x1="18" y1="18" x2="19.8" y2="19.8"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.2" y1="19.8" x2="6" y2="18"/><line x1="18" y1="6" x2="19.8" y2="4.2"/></svg>',
-  dark:  '<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'
+  light:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4.2" y1="4.2" x2="6" y2="6"/><line x1="18" y1="18" x2="19.8" y2="19.8"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.2" y1="19.8" x2="6" y2="18"/><line x1="18" y1="6" x2="19.8" y2="4.2"/></svg>',
+  dark: '<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'
 };
-const THEME_LABEL = { system:'Tema: sistem', light:'Tema: açık', dark:'Tema: koyu' };
-let theme = localStorage.getItem('a3i.theme') || 'system';
+const THEME_LABEL  = { light:'Beyaz tema', dark:'Karanlık tema' };
+const THEME_ACTION = { light:'Karanlık temaya geç', dark:'Beyaz temaya geç' };
+let theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
 
 function applyTheme(){
-  if (theme === 'system') document.documentElement.removeAttribute('data-theme');
-  else document.documentElement.setAttribute('data-theme', theme);
+  document.documentElement.setAttribute('data-theme', theme);
   const btn = document.getElementById('theme-btn');
   btn.innerHTML = THEME_ICONS[theme];
-  btn.title = THEME_LABEL[theme];
+  btn.title = THEME_ACTION[theme];
   localStorage.setItem('a3i.theme', theme);
 }
 function cycleTheme(){
-  theme = theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system';
+  theme = theme === 'dark' ? 'light' : 'dark';
   applyTheme();
   showToast(THEME_LABEL[theme]);
 }
@@ -1002,12 +984,13 @@ const MODES = [
 ];
 const MODE_LABEL = Object.fromEntries(MODES.map(m => [m.id, m.label]));
 
+/* Model her zaman açıkça seçilir — varsayılanı Sonnet 5 */
 const MODELS = [
-  { id:null,      label:'Varsayılan', desc:'Claude Code ayarı' },
   { id:'opus',    label:'Opus 5',     desc:'En güçlü akıl yürütme' },
   { id:'sonnet',  label:'Sonnet 5',   desc:'Dengeli hız ve derinlik' },
   { id:'haiku',   label:'Haiku 4.5',  desc:'En hızlı yanıt' },
 ];
+const DEFAULT_MODEL = 'sonnet';
 const EFFORTS = [
   { id:null,     label:'Varsayılan' },
   { id:'low',    label:'Düşük' },
@@ -1039,9 +1022,11 @@ let searchQuery = '';
 let searchHits = null;          // null = arama yok
 let searchTimer = null;
 
-let selModel  = localStorage.getItem('a3i.model')  || null;
+/* Kayıtlı model geçersizse (eski sürümlerden kalan 'null' dahil) Sonnet 5'e düşer */
+let selModel = localStorage.getItem('a3i.model');
+if (!MODELS.some(m => m.id === selModel)) selModel = DEFAULT_MODEL;
+
 let selEffort = localStorage.getItem('a3i.effort') || null;
-if (selModel  === 'null') selModel  = null;
 if (selEffort === 'null') selEffort = null;
 
 let pinned = [];
@@ -1153,18 +1138,22 @@ function popSpringOf(){
   return popSpring;
 }
 
+/* Popover DOM'u BİR KEZ kurulur. Seçim değişince yalnızca '.on' sınıfı güncellenir —
+   her tıklamada innerHTML'i yeniden yazmak listeyi gözle görülür şekilde yanıp söndürüyordu. */
+let popBuilt = false;
 function buildEnginePopover(){
+  if (popBuilt) { syncEnginePopover(); return; }
   const pop = document.getElementById('engine-pop');
   pop.innerHTML =
     `<div class="pop-label">Model</div>` +
     MODELS.map(m => `
-      <button class="pop-item${selModel === m.id ? ' on' : ''}" data-kind="model" data-id="${m.id ?? ''}">
+      <button class="pop-item" data-kind="model" data-id="${m.id}">
         <span class="pi-body"><span class="pi-title">${m.label}</span><span class="pi-desc">${m.desc}</span></span>
         <svg class="pi-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
       </button>`).join('') +
     `<div class="pop-sep"></div><div class="pop-label">Düşünme çabası</div>` +
     EFFORTS.map(e => `
-      <button class="pop-item${selEffort === e.id ? ' on' : ''}" data-kind="effort" data-id="${e.id ?? ''}">
+      <button class="pop-item" data-kind="effort" data-id="${e.id ?? ''}">
         <span class="pi-body"><span class="pi-title">${e.label}</span></span>
         <svg class="pi-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
       </button>`).join('');
@@ -1173,14 +1162,25 @@ function buildEnginePopover(){
     b.addEventListener('click', () => {
       const id = b.dataset.id || null;
       if (b.dataset.kind === 'model'){
-        selModel = id; localStorage.setItem('a3i.model', String(id));
+        if (!id) return;                       // model her zaman seçili kalır
+        selModel = id; localStorage.setItem('a3i.model', id);
       } else {
         selEffort = id; localStorage.setItem('a3i.effort', String(id));
       }
       updateEngineBtn();
-      buildEnginePopover();
+      syncEnginePopover();
       if (isGenerating) showToast('Yeni ayar sonraki mesajda geçerli olacak');
     });
+  });
+  popBuilt = true;
+  syncEnginePopover();
+}
+
+function syncEnginePopover(){
+  document.querySelectorAll('#engine-pop .pop-item').forEach(b => {
+    const id = b.dataset.id || null;
+    const on = b.dataset.kind === 'model' ? (selModel === id) : (selEffort === id);
+    b.classList.toggle('on', on);
   });
 }
 
