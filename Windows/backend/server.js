@@ -226,6 +226,35 @@ const SKILL_NAMES = [
   'academic-pipeline', 'grad-grounded-theory', 'academic-pptx-skill',
 ];
 
+// ── Alan bağlamı ───────────────────────────────────────────────
+// Sistem promptuna eklenir; soruların ve şıkların hangi alana göre
+// somutlaşacağını belirler. Başka bir alana geçilecekse SADECE burası
+// değiştirilir. Boş bırakılırsa asistan alandan bağımsız davranır.
+const ALAN_BAGLAMI = `ALAN BAĞLAMI
+Kullanıcılar BESYO (Beden Eğitimi ve Spor Yüksekokulu) / spor bilimleri alanından.
+Soruları, şıkları ve örnekleri bu alana göre somutlaştır. "Sosyal Bilimler",
+"Fen Bilimleri" gibi geniş kategorileri şık olarak SUNMA — doğrudan spor
+bilimlerinin alt alanlarını ve bu alandaki yöntem tercihlerini sor.
+
+Alt alanlar: antrenman bilimi, egzersiz fizyolojisi, biyomekanik, motor öğrenme
+ve gelişim, spor psikolojisi, spor yönetimi ve pazarlama, rekreasyon, beden
+eğitimi öğretmenliği (pedagoji), spor beslenmesi, sporcu sağlığı ve
+rehabilitasyon, engellilerde spor/adapte fiziksel aktivite, performans analizi.
+
+Bu alanda tipik olarak netleşmesi gereken şeyler — sorularını bunlardan seç:
+- Çalışma deseni: deneysel/RCT, ön test-son test, kesitsel, boylamsal,
+  ölçek geliştirme/uyarlama, sistematik derleme/meta-analiz, nitel
+- Örneklem: elit sporcu, amatör/rekreasyonel, çocuk-genç sporcu, üniversite
+  öğrencisi, sedanter yetişkin, yaşlı, engelli sporcu; cinsiyet ve yaş aralığı
+- Branş: takım (futbol, basketbol, voleybol, hentbol) veya bireysel
+  (atletizm, yüzme, güreş, tenis, judo, taekwondo, cimnastik)
+- Ölçüm/değişken: VO2maks, laktat, kalp atım hızı, kuvvet-kondisyon testleri,
+  sürat-çeviklik, denge-esneklik, antropometri/vücut kompozisyonu, izokinetik,
+  ölçek/anket puanları
+- Uygulama/müdahale: direnç antrenmanı, HIIT, pliometrik, kor, esneklik,
+  zihinsel antrenman, beslenme desteği
+- Hedef dergi düzeyi: SSCI/SCI-E, ESCI, Scopus, TR Dizin`;
+
 // Akademik skill'leri hedef klasöre symlink'ler + CLAUDE.md'yi kopyalar.
 // Hem sohbet oturumları hem sunum üretimi aynı skill setini görsün diye ortak.
 function linkSkills(targetDir) {
@@ -278,6 +307,8 @@ olabilir ama açıklamalar Türkçe olmalı. Düşünme/ara adım cümlelerini (
 "I'll now...") kullanıcıya yazma; sadece sonucu ver.
 ${modeHint ? `Aktif mod: ${modeHint}.` : ''}
 
+${ALAN_BAGLAMI}
+
 DOSYA ÜRETİMİ
 Kullanıcı bir belge/tablo/sunum isterse dosyayı çalışma klasörüne yaz; kullanıcı
 onu arayüzdeki "Dosyalar" bölümünden indirir. Dosya yolunu metin olarak vermen
@@ -305,7 +336,10 @@ Kurallar:
 - Bloğun dışına tek kelime bile yazma. Blok geldiğinde kullanıcıya pop-up gösterilir,
   metin olarak görünmez.
 - Cevaplar geldikten sonra soru sormadan işe başla.
-- Sadece cevap işi gerçekten değiştirecekse sor; makul varsayımla ilerleyebiliyorsan sorma.`;
+- Sadece cevap işi gerçekten değiştirecekse sor; makul varsayımla ilerleyebiliyorsan sorma.
+- Şıklar ALAN BAĞLAMI'ndaki gibi somut olsun (ör. "Elit futbolcu (18-25 yaş)",
+  "8 haftalık HIIT müdahalesi", "Ölçek uyarlama"). "Diğer alan", "Genel",
+  "Belirsiz" gibi içi boş şıklar koyma — kullanıcı zaten serbest metin yazabiliyor.`;
 
   const claudeArgs = [
     '--print',
