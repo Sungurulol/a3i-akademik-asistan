@@ -278,6 +278,16 @@ olabilir ama açıklamalar Türkçe olmalı. Düşünme/ara adım cümlelerini (
 "I'll now...") kullanıcıya yazma; sadece sonucu ver.
 ${modeHint ? `Aktif mod: ${modeHint}.` : ''}
 
+DOSYA ÜRETİMİ
+Kullanıcı bir belge/tablo/sunum isterse dosyayı çalışma klasörüne yaz; kullanıcı
+onu arayüzdeki "Dosyalar" bölümünden indirir. Dosya yolunu metin olarak vermen
+yeterli değil — dosyayı gerçekten oluştur.
+Kurulu kütüphaneler (NODE_PATH ayarlı, doğrudan require edilir):
+- pptxgenjs → .pptx     - docx → .docx
+- exceljs   → .xlsx     - html-to-docx → HTML'den .docx
+PDF için: Chrome headless ile HTML'den üretilebilir.
+npm install ETME; bu kütüphaneler zaten kurulu. Gerekmedikçe dosya üretme.
+
 SORU SORMA PROTOKOLÜ
 Kapsamlı bir işe (makale, plan, tarama, inceleme, sunum) başlamadan önce netleşmesi
 gereken şeyler varsa, düz metinle SORMA. Bunun yerine yanıtın SADECE şu blok olsun:
@@ -319,7 +329,10 @@ Kurallar:
 
   const proc = spawn('claude', claudeArgs, {
     cwd: sessionDir,
-    env: { ...process.env },
+    // Oturum klasörü backend/node_modules'ın altında değil; kurulu dosya üretme
+    // kütüphaneleri ancak NODE_PATH ile require edilebilir. Bu olmadan Claude
+    // her seferinde npm install etmeye kalkıyor (yavaş ve internet gerektiriyor).
+    env: { ...process.env, NODE_PATH: path.join(__dirname, 'node_modules') },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 
@@ -452,6 +465,12 @@ function handleEvent(ws, wsId, entry, event) {
         entry.streamedLen = 0;
       }
       entry.tokenCount = 0;
+      // Bu turda üretilen dosyaları kalıcı klasöre al; sessions/ her açılışta
+      // siliniyor ve arayüzden erişilemiyor.
+      try {
+        const yeni = harvestFiles(entry);
+        if (yeni.length) send(ws, { type: 'files_created', files: yeni });
+      } catch (e) { console.error('[dosya] toplama hatası:', e.message); }
       send(ws, { type: 'message_done' });
       break;
 
@@ -829,8 +848,80 @@ function countSlides(file) {
   } catch { return 0; }
 }
 
+// ── Üretilen dosyalar ──────────────────────────────────────────
+// Claude oturum klasöründe dosya üretir; orası her açılışta silindiği ve
+// arayüzden erişilemediği için üretilenler downloads/ altına taşınır.
+const GIZLI_UZANTILAR = ['.html', '.log', '.tmp', '.lock'];
+
+function harvestFiles(entry) {
+  const dir = safeSessionPath(entry.sessionId);
+  if (!dir || !fs.existsSync(dir)) return [];
+
+  if (!entry.gorulenDosyalar) entry.gorulenDosyalar = new Set();
+  const bulunan = [];
+
+  const gez = (klasor, derinlik = 0) => {
+    if (derinlik > 4) return;
+    let girdiler = [];
+    try { girdiler = fs.readdirSync(klasor, { withFileTypes: true }); } catch { return; }
+    for (const g of girdiler) {
+      if (g.name.startsWith('.') || g.name === 'node_modules') continue;
+      const p = path.join(klasor, g.name);
+      if (g.isDirectory()) { gez(p, derinlik + 1); continue; }
+      if (!g.isFile()) continue;
+      if (entry.gorulenDosyalar.has(p)) continue;
+      entry.gorulenDosyalar.add(p);
+      if (GIZLI_UZANTILAR.includes(path.extname(g.name).toLowerCase())) continue;
+      bulunan.push(p);
+    }
+  };
+  gez(dir);
+
+  const tasinan = [];
+  for (const kaynak of bulunan) {
+    try {
+      const taban = path.basename(kaynak);
+      let hedefAd = taban;
+      // Ad çakışırsa kısa bir sonek ekle (üzerine yazma)
+      if (fs.existsSync(path.join(DOWNLOADS_DIR, hedefAd))) {
+        const ext = path.extname(taban);
+        hedefAd = `${path.basename(taban, ext)}-${uuidv4().slice(0, 4)}${ext}`;
+      }
+      fs.copyFileSync(kaynak, path.join(DOWNLOADS_DIR, hedefAd));
+      tasinan.push(hedefAd);
+      console.log(`[dosya] Üretildi: ${hedefAd}`);
+    } catch (e) { console.error('[dosya] kopyalanamadı:', e.message); }
+  }
+  return tasinan;
+}
+
+// downloads/ içeriğini listeler. Ara/geçici dosyalar gizlenir.
+app.get('/api/files', (req, res) => {
+  try {
+    const dosyalar = fs.readdirSync(DOWNLOADS_DIR, { withFileTypes: true })
+      .filter(d => d.isFile() && !d.name.startsWith('.'))
+      .filter(d => !GIZLI_UZANTILAR.includes(path.extname(d.name).toLowerCase()))
+      .map(d => {
+        const st = fs.statSync(path.join(DOWNLOADS_DIR, d.name));
+        return { name: d.name, size: st.size, ts: st.mtimeMs };
+      })
+      .sort((a, b) => b.ts - a.ts);
+    res.json(dosyalar);
+  } catch { res.json([]); }
+});
+
+app.delete('/api/files/:file', (req, res) => {
+  const p = safePathIn(DOWNLOADS_DIR, req.params.file);
+  if (!p) return res.status(400).json({ error: 'Geçersiz dosya adı' });
+  try {
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/download/:file', (req, res) => {
-  const filePath = require('path').join(DOWNLOADS_DIR, require('path').basename(req.params.file));
+  const filePath = safePathIn(DOWNLOADS_DIR, req.params.file);
+  if (!filePath) return res.status(400).json({ error: 'Geçersiz dosya adı' });
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Dosya bulunamadı' });
   res.download(filePath);
 });

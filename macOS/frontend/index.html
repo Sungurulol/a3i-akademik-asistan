@@ -230,6 +230,44 @@ button{background:none;border:none;cursor:pointer}
 .chat-item.pinned .act-pin svg{fill:currentColor;stroke-width:1.4}
 .empty-hint{padding:18px 10px;font-size:12px;color:var(--text-3);text-align:center;line-height:1.5}
 
+/* Sohbetler / Dosyalar geçişi */
+.side-tabs{display:flex;gap:2px;margin:0 12px 8px;padding:2px;background:var(--surface-2);border-radius:var(--r-sm)}
+.side-tab{
+  flex:1;padding:5px 8px;border-radius:7px;
+  font-size:11.5px;font-weight:500;letter-spacing:-.003em;color:var(--text-3);
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  transition:background 140ms ease,color 140ms ease;
+}
+.side-tab:hover{color:var(--text-2)}
+.side-tab.on{background:var(--surface);color:var(--text);box-shadow:var(--sh-1)}
+.side-tab .n{
+  font-size:9.5px;font-weight:600;background:var(--surface-3);color:var(--text-3);
+  border-radius:20px;padding:0 5px;min-width:15px;text-align:center;
+}
+.side-tab.on .n{background:var(--accent-soft);color:var(--accent)}
+
+/* Dosya listesi */
+.file-row{
+  display:flex;align-items:center;gap:9px;padding:7px 8px;
+  border-radius:var(--r-sm);cursor:pointer;transition:background 120ms ease;
+}
+.file-row:hover{background:var(--surface-2)}
+.file-ico{
+  width:26px;height:26px;border-radius:7px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--accent-soft);
+  font-size:8.5px;font-weight:700;letter-spacing:.02em;color:var(--accent);
+  text-transform:uppercase;
+}
+.file-meta{flex:1;min-width:0}
+.file-name{
+  display:block;font-size:12px;color:var(--text-2);letter-spacing:-.005em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.file-sub{display:block;font-size:10.5px;color:var(--text-3);margin-top:1px}
+.file-acts{display:flex;gap:1px;opacity:0;transition:opacity 140ms ease;flex-shrink:0}
+.file-row:hover .file-acts{opacity:1}
+
 /* Kenar çubuğu altı */
 .sidebar-foot{padding:8px 12px 12px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px}
 .conn{display:flex;align-items:center;gap:7px;flex:1;min-width:0}
@@ -760,7 +798,14 @@ button{background:none;border:none;cursor:pointer}
       Yeni sohbet
     </button>
 
-    <div class="search-wrap">
+    <div class="side-tabs">
+      <button class="side-tab on" id="tab-chats" onclick="switchPane('chats')">Sohbetler</button>
+      <button class="side-tab" id="tab-files" onclick="switchPane('files')">
+        Dosyalar <span class="n" id="file-count">0</span>
+      </button>
+    </div>
+
+    <div class="search-wrap" id="search-wrap">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input class="search" id="search" type="text" placeholder="Sohbetlerde ara" autocomplete="off" spellcheck="false">
       <button class="search-clear" id="search-clear" onclick="clearSearch()" title="Temizle">
@@ -769,6 +814,7 @@ button{background:none;border:none;cursor:pointer}
     </div>
 
     <nav class="history" id="history"></nav>
+    <nav class="history" id="files-list" style="display:none"></nav>
 
     <div class="sidebar-foot">
       <div class="conn">
@@ -1685,6 +1731,91 @@ function clearSearch(){
 }
 
 /* ═══════════════════════════════════════════════════════════
+   14b — ÜRETİLEN DOSYALAR
+   Claude oturum klasöründe dosya üretiyor; sunucu bunları kalıcı
+   downloads/ altına alıyor. Burada listelenip indiriliyor.
+   ═══════════════════════════════════════════════════════════ */
+let dosyalar = [];
+let aktifPane = 'chats';
+
+function switchPane(pane){
+  aktifPane = pane;
+  document.getElementById('tab-chats').classList.toggle('on', pane === 'chats');
+  document.getElementById('tab-files').classList.toggle('on', pane === 'files');
+  document.getElementById('history').style.display    = pane === 'chats' ? '' : 'none';
+  document.getElementById('files-list').style.display = pane === 'files' ? '' : 'none';
+  document.getElementById('search-wrap').style.display = pane === 'chats' ? '' : 'none';
+  if (pane === 'files') loadFiles();
+}
+
+async function loadFiles(){
+  try {
+    const res = await fetch('/api/files');
+    dosyalar = await res.json();
+  } catch { dosyalar = []; }
+  document.getElementById('file-count').textContent = dosyalar.length;
+  renderFileList();
+}
+
+function boyutYaz(b){
+  if (b < 1024) return b + ' B';
+  if (b < 1024 * 1024) return Math.round(b / 1024) + ' KB';
+  return (b / 1024 / 1024).toFixed(1) + ' MB';
+}
+function tarihYaz(ts){
+  const d = new Date(ts), simdi = new Date();
+  const ayniGun = d.toDateString() === simdi.toDateString();
+  return ayniGun
+    ? d.toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' })
+    : d.toLocaleDateString('tr-TR', { day:'numeric', month:'short' });
+}
+
+function renderFileList(){
+  const el = document.getElementById('files-list');
+  if (!dosyalar.length){
+    el.innerHTML = `<div class="empty-hint">Henüz dosya yok.<br>Claude bir belge, tablo veya sunum ürettiğinde burada görünür.</div>`;
+    return;
+  }
+  el.innerHTML = dosyalar.map((f, i) => {
+    const ext = (f.name.split('.').pop() || '?').slice(0, 4);
+    return `<div class="file-row" data-i="${i}" title="${escHtml(f.name)}">
+      <span class="file-ico">${escHtml(ext)}</span>
+      <span class="file-meta">
+        <span class="file-name">${escHtml(f.name)}</span>
+        <span class="file-sub">${boyutYaz(f.size)} · ${tarihYaz(f.ts)}</span>
+      </span>
+      <span class="file-acts">
+        <button class="act" data-act="dl" data-i="${i}" title="İndir">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="act danger" data-act="del" data-i="${i}" title="Sil">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        </button>
+      </span>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.file-row').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('.act')) return;
+      grab(dosyalar[+row.dataset.i].name);
+    });
+  });
+  el.querySelectorAll('.act').forEach(b => {
+    b.addEventListener('click', async e => {
+      e.stopPropagation();
+      const f = dosyalar[+b.dataset.i];
+      if (b.dataset.act === 'dl') return grab(f.name);
+      try {
+        await fetch('/api/files/' + encodeURIComponent(f.name), { method:'DELETE' });
+        showToast('Dosya silindi');
+        loadFiles();
+      } catch { showToast('Silinemedi'); }
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
    15 — SİL / YENİDEN ADLANDIR
    ═══════════════════════════════════════════════════════════ */
 function openDelete(i){
@@ -2166,6 +2297,13 @@ function handleMsg(msg){
       setActivity({ tokens: msg.tokens + ' token' });
       break;
 
+    case 'files_created': {
+      loadFiles();
+      const n = msg.files.length;
+      showToast(n === 1 ? `Dosya hazır: ${msg.files[0]}` : `${n} dosya hazır — Dosyalar bölümünde`);
+      break;
+    }
+
     case 'message_done':
       finishGroup();
       setConn('active', 'Hazır');
@@ -2307,6 +2445,7 @@ async function prepareDownload(text, btn){
       showToast('PDF üretilemedi — sadece DOCX indirildi');
       btn.innerHTML = SVG_OK + ' DOCX';
     }
+    loadFiles();
     btn.classList.add('ok');
     setTimeout(() => { btn.innerHTML = original; btn.disabled = false; btn.classList.remove('ok'); }, 4000);
   } catch(e){
@@ -2344,6 +2483,7 @@ async function preparePptx(text, btn){
     btn.innerHTML = SVG_SPIN + ' İndiriliyor…';
     await grab(data.pptxFile);
 
+    loadFiles();
     btn.classList.add('ok');
     btn.innerHTML = SVG_OK + (data.slides ? ` ${data.slides} slayt` : ' Sunum indirildi');
     setTimeout(() => { btn.innerHTML = original; btn.disabled = false; btn.classList.remove('ok'); }, 5000);
@@ -2401,6 +2541,7 @@ updateEngineBtn();
 renderChips();
 renderWelcome();
 loadChatsFromDisk();
+loadFiles();          // rozetteki sayı ilk açılışta da doğru olsun
 connect();
 </script>
 </body>
