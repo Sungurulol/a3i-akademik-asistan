@@ -31,6 +31,30 @@ echo "  ║     A³I — Akademik Asistan AI           ║"
 echo "  ╚══════════════════════════════════════════╝"
 echo ""
 
+# ── A³I güncelleme kontrolü ──────────────────
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [ -d "$REPO_DIR/.git" ]; then
+  echo "  → A³I güncellemeleri kontrol ediliyor..."
+  cd "$REPO_DIR"
+  OLD_COMMIT=$(git rev-parse @ 2>/dev/null)
+  git fetch --quiet 2>/dev/null
+  NEW_COMMIT=$(git rev-parse @{u} 2>/dev/null)
+  if [ -n "$OLD_COMMIT" ] && [ -n "$NEW_COMMIT" ] && [ "$OLD_COMMIT" != "$NEW_COMMIT" ]; then
+    echo "  → Yeni güncelleme bulundu, indiriliyor..."
+    git pull --quiet
+    if git diff --name-only "$OLD_COMMIT" "$NEW_COMMIT" | grep -q "kurulum.command"; then
+      echo "  → Kurulum güncellendi, yeniden kuruluyor..."
+      bash "$SCRIPT_DIR/kurulum.command"
+    fi
+    echo "  → Bağımlılıklar güncelleniyor..."
+    cd "$SCRIPT_DIR/backend" && npm install --silent 2>/dev/null
+    cd "$SCRIPT_DIR"
+    echo "  ✓ A³I güncellendi"
+  else
+    echo "  ✓ A³I güncel"
+  fi
+fi
+
 # ── Skills güncelle ──────────────────────────
 SKILLS_DIR="$SCRIPT_DIR/skills/academic-research-skills"
 if [ -d "$SKILLS_DIR/.git" ]; then

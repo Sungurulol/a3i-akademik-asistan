@@ -25,6 +25,48 @@ IF %ERRORLEVEL% NEQ 0 (
   pause & exit /b 1
 )
 
+:: ── A3I guncelleme kontrolu ──────────────────
+SET "REPO_DIR=%SCRIPT_DIR%.."
+IF NOT EXIST "%REPO_DIR%\.git" GOTO SKIP_REPO_UPDATE
+
+echo  A3I guncellemeleri kontrol ediliyor...
+pushd "%REPO_DIR%"
+SET "OLD_COMMIT="
+SET "NEW_COMMIT="
+FOR /f "delims=" %%h IN ('git rev-parse @ 2^>nul') DO SET "OLD_COMMIT=%%h"
+git fetch --quiet >nul 2>&1
+FOR /f "delims=" %%h IN ('git rev-parse @{u} 2^>nul') DO SET "NEW_COMMIT=%%h"
+popd
+
+IF NOT DEFINED OLD_COMMIT GOTO SKIP_REPO_UPDATE
+IF NOT DEFINED NEW_COMMIT GOTO SKIP_REPO_UPDATE
+IF "%OLD_COMMIT%"=="%NEW_COMMIT%" (
+  echo  A3I guncel.
+  GOTO SKIP_REPO_UPDATE
+)
+
+echo  Yeni guncelleme bulundu, indiriliyor...
+pushd "%REPO_DIR%"
+git pull --quiet
+popd
+
+SET "KURULUM_CHANGED="
+pushd "%REPO_DIR%"
+FOR /f "delims=" %%f IN ('git diff --name-only "%OLD_COMMIT%" "%NEW_COMMIT%" 2^>nul ^| findstr /i "kurulum.bat"') DO SET "KURULUM_CHANGED=%%f"
+popd
+IF DEFINED KURULUM_CHANGED (
+  echo  Kurulum guncellendi, yeniden kuruluyor...
+  call "%SCRIPT_DIR%kurulum.bat"
+)
+
+echo  Bagimliliklar guncelleniyor...
+pushd "%SCRIPT_DIR%backend"
+call npm install --silent
+popd
+echo  A3I guncellendi.
+
+:SKIP_REPO_UPDATE
+
 :: ── Skills güncelle ─────────────────────────
 echo  Skills guncelleniyor...
 IF EXIST "%SCRIPT_DIR%skills\academic-research-skills\.git" (
