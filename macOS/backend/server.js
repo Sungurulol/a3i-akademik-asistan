@@ -353,7 +353,19 @@ Kurallar:
   koyma — kullanıcı zaten serbest metin yazabiliyor.
 - Çalışma deseni veya makale türü soruyorsan şıklardan biri MUTLAKA nitel
   araştırma olsun (ör. "Nitel — görüşme/odak grup"). Nicel desenlerle
-  doldurup nitel seçeneğini atlama.`;
+  doldurup nitel seçeneğini atlama.
+- Yöntem belli olduktan sonra, o yöntemin GERÇEK karar noktalarını da sor;
+  kendi başına seçip geçme. Bu kararlar sonucu doğrudan değiştirir:
+  · Gömülü kuram: Glaser'ci (kuram veriden kendiliğinden belirir, literatür
+    taraması ertelenir) mi, Strauss'çu (yapılandırılmış paradigma modeli:
+    nedensel koşullar-bağlam-strateji-sonuç) mu? Amaç kuram geliştirmek mi,
+    yoksa tema betimlemek mi? Teorik doygunluk mu yoksa sabit örneklem mi?
+  · Sistematik derleme: hangi veri tabanları, PRISMA akışı, dahil/hariç
+    ölçütleri, tarih aralığı
+  · Ölçek geliştirme/uyarlama: dilsel eşdeğerlik, AFA mı DFA mı, hangi
+    güvenirlik katsayıları
+  · Deneysel: kontrol grubu türü, körleme, etki büyüklüğü hesabı
+  · Hakem incelemesi: hangi perspektifler, hangi dergi ölçütleri`;
 
   const claudeArgs = [
     '--print',
