@@ -117,6 +117,22 @@ echo  grad-grounded-theory skill indirildi.
 rmdir /s /q "%TMP_SKILLS_DIR%" 2>nul
 :SKIP_GRAD_SKILL
 
+:: ── Ek skill: academic-pptx-skill ───────────
+IF EXIST "%SCRIPT_DIR%skills\academic-research-skills\academic-pptx-skill" GOTO SKIP_PPTX_SKILL
+echo  academic-pptx-skill indiriliyor...
+SET "TMP_PPTX_DIR=%TEMP%\academic-pptx-%RANDOM%"
+git clone --depth 1 --quiet https://github.com/Gabberflast/academic-pptx-skill.git "%TMP_PPTX_DIR%"
+IF NOT EXIST "%TMP_PPTX_DIR%\SKILL.md" (
+  echo  [UYARI] academic-pptx-skill indirilemedi.
+  GOTO CLEANUP_PPTX_SKILL
+)
+rmdir /s /q "%TMP_PPTX_DIR%\.git" 2>nul
+xcopy /e /i /y "%TMP_PPTX_DIR%" "%SCRIPT_DIR%skills\academic-research-skills\academic-pptx-skill\" >nul
+echo  academic-pptx-skill indirildi.
+:CLEANUP_PPTX_SKILL
+rmdir /s /q "%TMP_PPTX_DIR%" 2>nul
+:SKIP_PPTX_SKILL
+
 :: ── Claude oturumu ───────────────────────────
 echo.
 echo  Claude hesabınıza giriş yapılacak.

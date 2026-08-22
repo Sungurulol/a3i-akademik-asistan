@@ -166,7 +166,7 @@ function startClaudeProcess(ws, wsId, mode) {
   const skillsLink = path.join(sessionDir, '.claude', 'skills');
   fs.mkdirSync(path.join(sessionDir, '.claude'), { recursive: true });
 
-  const skillNames = ['deep-research', 'academic-paper', 'academic-paper-reviewer', 'academic-pipeline', 'grad-grounded-theory'];
+  const skillNames = ['deep-research', 'academic-paper', 'academic-paper-reviewer', 'academic-pipeline', 'grad-grounded-theory', 'academic-pptx-skill'];
   fs.mkdirSync(skillsLink, { recursive: true });
   for (const skill of skillNames) {
     const src = path.join(SKILLS_DIR, skill);

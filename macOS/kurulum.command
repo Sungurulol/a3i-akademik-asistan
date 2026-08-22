@@ -120,6 +120,23 @@ else
   rm -rf "$TMP_SKILLS_DIR"
 fi
 
+# ── Ek skill: academic-pptx-skill ────────────
+if [ -d "$SCRIPT_DIR/skills/academic-research-skills/academic-pptx-skill" ]; then
+  ok "academic-pptx-skill zaten mevcut"
+else
+  info "academic-pptx-skill indiriliyor..."
+  TMP_PPTX_DIR=$(mktemp -d)
+  if git clone --depth 1 --quiet https://github.com/Gabberflast/academic-pptx-skill.git "$TMP_PPTX_DIR" 2>/dev/null \
+    && [ -f "$TMP_PPTX_DIR/SKILL.md" ]; then
+    rm -rf "$TMP_PPTX_DIR/.git"
+    cp -r "$TMP_PPTX_DIR" "$SCRIPT_DIR/skills/academic-research-skills/academic-pptx-skill"
+    ok "academic-pptx-skill indirildi"
+  else
+    fail "academic-pptx-skill indirilemedi"
+  fi
+  rm -rf "$TMP_PPTX_DIR"
+fi
+
 # ── Claude oturumu ───────────────────────────
 step "Claude Hesabı"
 if claude auth status &>/dev/null 2>&1; then
