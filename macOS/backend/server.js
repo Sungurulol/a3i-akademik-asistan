@@ -119,23 +119,54 @@ function send(ws, data) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data));
 }
 
+// Süreci sonlandırır ve GERÇEKTEN kapanmasını bekler.
+// Beklemek şart: Claude session durumunu kapanırken yazıyor; hemen --resume
+// edilirse session henüz diskte olmadığı için resume tutmaz.
 function killProc(wsId) {
   const entry = activeProcs.get(wsId);
-  if (entry?.proc) {
-    try { entry.proc.kill('SIGTERM'); } catch {}
-    activeProcs.delete(wsId);
-  }
+  if (!entry?.proc) return Promise.resolve();
+
+  // Önce haritadan çıkar — böylece bu sürecin 'close' handler'ı,
+  // yerine geçen yeni süreci haritadan silmez.
+  activeProcs.delete(wsId);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = () => { if (!settled) { settled = true; clearTimeout(t); resolve(); } };
+    entry.proc.once('close', done);
+    const t = setTimeout(() => {
+      try { entry.proc.kill('SIGKILL'); } catch {}
+      done();
+    }, 3000);
+    try { entry.proc.kill('SIGTERM'); } catch { done(); }
+  });
 }
 
 async function handleChat(ws, wsId, msg) {
   const { text, mode } = msg;
+  // entry üzerinde doğrulanmış değerler tutulduğu için karşılaştırma öncesi burada da normalize et,
+  // yoksa geçersiz bir değer her mesajda yeniden başlatmayı tetikler.
+  const model  = ALLOWED_MODELS.includes(msg.model)   ? msg.model  : null;
+  const effort = ALLOWED_EFFORTS.includes(msg.effort) ? msg.effort : null;
 
   let entry = activeProcs.get(wsId);
 
   if (!entry) {
-    entry = startClaudeProcess(ws, wsId, mode);
+    entry = startClaudeProcess(ws, wsId, mode, { model, effort });
     activeProcs.set(wsId, entry);
-    await waitForInit(entry, 8000);
+  } else if (entry.model !== model || entry.effort !== effort) {
+    // Model/effort başlatma bayrağı — değiştiyse süreci yeniden başlat.
+    // --resume ile aynı session'a dönüldüğü için konuşma bağlamı korunur.
+    const prevSessionId = entry.sessionId;
+    console.log(`[${wsId}] Model/effort değişti → yeniden başlatılıyor (${entry.model || 'varsayılan'}/${entry.effort || 'varsayılan'} → ${model || 'varsayılan'}/${effort || 'varsayılan'})`);
+    send(ws, { type: 'model_switching', model, effort });
+    await killProc(wsId);          // eski süreç kapanana kadar bekle (session diske yazılsın)
+
+    entry = startClaudeProcess(ws, wsId, mode, { model, effort, resumeSessionId: prevSessionId });
+    // Resume tutmazsa (session bulunamadı vb.) temiz süreçle tekrar denenebilmesi için
+    // mesajı sakla — süreç init olmadan kapanırsa 'close' handler'ı devralır.
+    entry.retryOpts = { mode, model, effort };
+    activeProcs.set(wsId, entry);
   } else {
     // Reconnect: ws referansını güncelle
     entry.ws = ws;
@@ -145,7 +176,15 @@ async function handleChat(ws, wsId, msg) {
   if (!entry.history) entry.history = [];
   entry.history.push({ role: 'user', text });
 
-  // Mesajı stdin'e gönder
+  sendToProc(ws, wsId, entry, text);
+}
+
+// Mesajı sürecin stdin'ine yazar.
+// NOT: Claude Code 'system/init' olayını ancak ilk girdiden SONRA yayınlıyor;
+// bu yüzden init'i beklemek yerine mesaj doğrudan yazılır (eskiden buradaki
+// bekleme her yeni sohbete 8 saniyelik boş gecikme ekliyordu).
+function sendToProc(ws, wsId, entry, text) {
+  entry.lastText = text;
   const inputMsg = JSON.stringify({ type: 'user', message: { role: 'user', content: text } }) + '\n';
   try {
     entry.proc.stdin.write(inputMsg);
@@ -155,8 +194,16 @@ async function handleChat(ws, wsId, msg) {
   }
 }
 
-function startClaudeProcess(ws, wsId, mode) {
-  const sessionId = uuidv4();
+// Claude CLI'ın kabul ettiği değerler — dışarıdan gelen input doğrudan argv'ye geçmesin
+const ALLOWED_MODELS  = ['opus', 'sonnet', 'haiku', 'fable'];
+const ALLOWED_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+
+function startClaudeProcess(ws, wsId, mode, opts = {}) {
+  const model  = ALLOWED_MODELS.includes(opts.model)   ? opts.model  : null;
+  const effort = ALLOWED_EFFORTS.includes(opts.effort) ? opts.effort : null;
+  const resumeSessionId = opts.resumeSessionId || null;
+
+  const sessionId = resumeSessionId || uuidv4();
 
   // Kullanıcı çalışma dizini: session klasörü içinde
   const sessionDir = path.join(SESSIONS_DIR, sessionId);
@@ -205,10 +252,16 @@ Aktif mod: ${modeHint}.`;
     '--input-format', 'stream-json',
     '--include-partial-messages',
     '--dangerously-skip-permissions',
-    '--session-id', sessionId,
   ];
 
-  console.log(`[${wsId}] Claude Code başlatılıyor — session: ${sessionId}, mod: ${mode}`);
+  // Resume ederken --session-id verilmez; --resume zaten session'ı belirler
+  if (resumeSessionId) claudeArgs.push('--resume', resumeSessionId);
+  else                 claudeArgs.push('--session-id', sessionId);
+
+  if (model)  claudeArgs.push('--model', model);
+  if (effort) claudeArgs.push('--effort', effort);
+
+  console.log(`[${wsId}] Claude Code başlatılıyor — session: ${sessionId}${resumeSessionId ? ' (resume)' : ''}, mod: ${mode}, model: ${model || 'varsayılan'}, effort: ${effort || 'varsayılan'}`);
   console.log(`[${wsId}] Çalışma dizini: ${sessionDir}`);
 
   const proc = spawn('claude', claudeArgs, {
@@ -217,7 +270,7 @@ Aktif mod: ${modeHint}.`;
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 
-  const entry = { proc, sessionId, buffer: '', initialized: false, ws, streamedLen: 0 };
+  const entry = { proc, sessionId, buffer: '', initialized: false, ws, streamedLen: 0, model, effort };
 
   proc.stdout.on('data', (chunk) => {
     entry.buffer += chunk.toString();
@@ -245,7 +298,22 @@ Aktif mod: ${modeHint}.`;
 
   proc.on('close', (code) => {
     console.log(`[${wsId}] Claude Code kapandı, kod: ${code}`);
+    // Bu süreç artık aktif değilse (kasıtlı sonlandırma / model değişimi) sessizce çık —
+    // yoksa yerine geçen süreci haritadan siler ve istemciyi boşuna 'done' ile düşürür.
+    if (activeProcs.get(wsId) !== entry) return;
     activeProcs.delete(wsId);
+
+    // Resume denemesi hiç başlayamadan öldüyse: temiz session ile bir kez tekrar dene.
+    if (resumeSessionId && !entry.initialized && entry.retryOpts && entry.lastText) {
+      console.log(`[${wsId}] Resume tutmadı (kod ${code}) — temiz session ile tekrar deneniyor`);
+      const { mode: m, model: mo, effort: ef } = entry.retryOpts;
+      const fresh = startClaudeProcess(entry.ws, wsId, m, { model: mo, effort: ef });
+      fresh.history = entry.history;
+      activeProcs.set(wsId, fresh);
+      sendToProc(entry.ws, wsId, fresh, entry.lastText);
+      return;
+    }
+
     send(entry.ws, { type: 'done', code });
   });
 
@@ -360,20 +428,6 @@ function handleEvent(ws, wsId, entry, event) {
       }
       break;
   }
-}
-
-function waitForInit(entry, timeoutMs) {
-  return new Promise((resolve) => {
-    if (entry.initialized) { resolve(); return; }
-    const t = setTimeout(resolve, timeoutMs);
-    const check = setInterval(() => {
-      if (entry.initialized) {
-        clearInterval(check);
-        clearTimeout(t);
-        resolve();
-      }
-    }, 100);
-  });
 }
 
 
@@ -767,6 +821,43 @@ app.get('/api/chats', (req, res) => {
       return { name, lastTs };
     }).sort((a, b) => b.lastTs - a.lastTs);
     res.json(chats);
+  } catch { res.json([]); }
+});
+
+// Sohbet arama — hem klasör adında (başlık) hem mesaj içeriğinde arar.
+// '/api/chats/:name' ile çakışmaması için ayrı yol kullanılıyor.
+app.get('/api/chats-search', (req, res) => {
+  const q = String(req.query.q || '').trim().toLocaleLowerCase('tr');
+  if (q.length < 2) return res.json([]);
+  try {
+    const dirs = fs.readdirSync(CHATS_DIR)
+      .filter(f => fs.statSync(path.join(CHATS_DIR, f)).isDirectory());
+
+    const results = [];
+    for (const name of dirs) {
+      const titleHit = name.toLocaleLowerCase('tr').includes(q);
+      let snippet = null;
+
+      const logFile = path.join(CHATS_DIR, name, 'conversation.jsonl');
+      if (fs.existsSync(logFile)) {
+        for (const line of fs.readFileSync(logFile, 'utf8').split('\n')) {
+          if (!line.trim()) continue;
+          try {
+            const m = JSON.parse(line);
+            const text = m.text || '';
+            const idx = text.toLocaleLowerCase('tr').indexOf(q);
+            if (idx !== -1) {
+              const start = Math.max(0, idx - 40);
+              snippet = (start > 0 ? '…' : '')
+                + text.slice(start, idx + q.length + 60).replace(/\s+/g, ' ').trim() + '…';
+              break;
+            }
+          } catch {}
+        }
+      }
+      if (titleHit || snippet) results.push({ name, snippet, titleHit });
+    }
+    res.json(results.slice(0, 40));
   } catch { res.json([]); }
 });
 

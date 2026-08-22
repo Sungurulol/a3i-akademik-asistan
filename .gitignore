@@ -5,8 +5,10 @@ Windows/backend/node_modules/
 # Kullanıcı verileri
 macOS/sessions/
 macOS/downloads/
+macOS/Chats/
 Windows/sessions/
 Windows/downloads/
+Windows/Chats/
 
 # Skills — kurulum sırasında klonlanır
 macOS/skills/
