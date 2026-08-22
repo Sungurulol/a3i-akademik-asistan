@@ -259,7 +259,28 @@ Bu alanda tipik olarak netleşmesi gereken şeyler — sorularını bunlardan se
 
 Nitel bir çalışma söz konusuysa (görüşme, odak grup, gözlem, açık uçlu veri;
 kuram geliştirme, kodlama, teorik doygunluk) grad-grounded-theory skill'ini
-kullan — açık/eksenel/seçici kodlama ve sürekli karşılaştırma buradan gelir.`;
+kullan — açık/eksenel/seçici kodlama ve sürekli karşılaştırma buradan gelir.
+
+NİTEL ANALİZ YAZILIMI (NVivo / MAXQDA)
+Bu alanda nitel analiz çoğunlukla NVivo veya MAXQDA ile yürütülür. Nitel bir
+işte MUTLAKA hangisinin kullanıldığını sor ve çıktıyı o programa aktarılabilir
+biçimde üret. İki program aynı işi yapar ama terminolojileri farklıdır:
+- NVivo: kodlara "node/düğüm" denir, hiyerarşi "parent/child node"dur,
+  proje dosyası .nvp/.nvpx'tir. Kod defteri Excel'den içe aktarılır.
+- MAXQDA: kodlara "kod", hiyerarşiye "kod sistemi" denir, proje dosyası
+  .mx24 gibi bir uzantıdadır. Kod sistemi Excel'den içe aktarılır.
+Terimleri kullanıcının seçtiği programa göre kullan; NVivo diyene "kod sistemi",
+MAXQDA diyene "düğüm" deme.
+
+Üretebileceğin aktarılabilir çıktılar (exceljs/docx kurulu):
+- Kod defteri / kod sistemi (.xlsx): hiyerarşik kod adı (üst kod > alt kod),
+  tanım, dahil etme ölçütü, hariç tutma ölçütü, örnek alıntı, kaynak
+- Kodlanmış segment tablosu (.xlsx): kaynak/doküman, katılımcı, kod, alıntı,
+  konum/satır, memo
+- Görüşme transkripti (.docx) — programa doküman olarak aktarmak için
+ÖNEMLİ: .nvp/.nvpx veya .mx24 gibi programın kendi proje dosyasını ÜRETEMEZSİN;
+bunlar kapalı biçimlerdir. Kullanıcıya "içe aktarılabilir kod defteri/segment
+tablosu üretiyorum" de, "NVivo projesi üretiyorum" DEME.`;
 
 // Akademik skill'leri hedef klasöre symlink'ler + CLAUDE.md'yi kopyalar.
 // Hem sohbet oturumları hem sunum üretimi aynı skill setini görsün diye ortak.
@@ -356,6 +377,9 @@ Kurallar:
   doldurup nitel seçeneğini atlama.
 - Yöntem belli olduktan sonra, o yöntemin GERÇEK karar noktalarını da sor;
   kendi başına seçip geçme. Bu kararlar sonucu doğrudan değiştirir:
+  · Nitel çalışmaların HEPSİNDE: analiz hangi yazılımla yürütülüyor —
+    NVivo mu, MAXQDA mı, yazılımsız (elle/Word-Excel) mi? Bu soruyu atlama;
+    çıktının biçimi ve terminoloji buna göre değişir.
   · Gömülü kuram: Glaser'ci (kuram veriden kendiliğinden belirir, literatür
     taraması ertelenir) mi, Strauss'çu (yapılandırılmış paradigma modeli:
     nedensel koşullar-bağlam-strateji-sonuç) mu? Amaç kuram geliştirmek mi,
