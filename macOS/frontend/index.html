@@ -1772,6 +1772,7 @@ const SVG_COPY = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="
 const SVG_OK   = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
 const SVG_DL   = '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
 const SVG_SPIN = '<svg viewBox="0 0 24 24" class="spinning"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg>';
+const SVG_SLIDES = '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><line x1="12" y1="16" x2="12" y2="20"/><line x1="8" y1="20" x2="16" y2="20"/></svg>';
 
 function buildActions(text){
   const acts = document.createElement('div');
@@ -1793,7 +1794,13 @@ function buildActions(text){
   dl.innerHTML = SVG_DL + ' İndir';
   dl.addEventListener('click', () => prepareDownload(text, dl));
 
-  acts.append(copy, dl);
+  const pptx = document.createElement('button');
+  pptx.className = 'act-btn';
+  pptx.innerHTML = SVG_SLIDES + ' Sunum';
+  pptx.title = 'Bu metni akademik sunuma (.pptx) çevir';
+  pptx.addEventListener('click', () => preparePptx(text, pptx));
+
+  acts.append(copy, dl, pptx);
   return acts;
 }
 
@@ -2098,6 +2105,47 @@ async function prepareDownload(text, btn){
     showToast('İndirme hatası: ' + e.message);
   }
 }
+/* Sohbetteki makaleyi academic-pptx-skill ile sunuma çevirir.
+   Üretim 1-2 dakika sürebildiği için düğmede geçen süre gösterilir —
+   sabit bir spinner kullanıcıya donmuş gibi görünüyor. */
+async function preparePptx(text, btn){
+  if (text.trim().length < 200){
+    showToast('Sunuma çevirmek için metin çok kısa');
+    return;
+  }
+  const original = btn.innerHTML;
+  btn.disabled = true;
+
+  const t0 = Date.now();
+  const tick = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    btn.innerHTML = SVG_SPIN + ` Sunum hazırlanıyor… ${s}s`;
+  }, 1000);
+  btn.innerHTML = SVG_SPIN + ' Sunum hazırlanıyor… 0s';
+
+  try {
+    const res = await fetch('/api/prepare-pptx', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    clearInterval(tick);
+    btn.innerHTML = SVG_SPIN + ' İndiriliyor…';
+    await grab(data.pptxFile);
+
+    btn.classList.add('ok');
+    btn.innerHTML = SVG_OK + (data.slides ? ` ${data.slides} slayt` : ' Sunum indirildi');
+    setTimeout(() => { btn.innerHTML = original; btn.disabled = false; btn.classList.remove('ok'); }, 5000);
+  } catch(e){
+    clearInterval(tick);
+    btn.innerHTML = original;
+    btn.disabled = false;
+    showToast('Sunum hatası: ' + e.message);
+  }
+}
+
 async function grab(file){
   const res = await fetch('/api/download/' + file);
   const blob = await res.blob();

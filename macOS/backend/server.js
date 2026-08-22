@@ -198,6 +198,33 @@ function sendToProc(ws, wsId, entry, text) {
 const ALLOWED_MODELS  = ['opus', 'sonnet', 'haiku', 'fable'];
 const ALLOWED_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 
+const SKILL_NAMES = [
+  'deep-research', 'academic-paper', 'academic-paper-reviewer',
+  'academic-pipeline', 'grad-grounded-theory', 'academic-pptx-skill',
+];
+
+// Akademik skill'leri hedef klasöre symlink'ler + CLAUDE.md'yi kopyalar.
+// Hem sohbet oturumları hem sunum üretimi aynı skill setini görsün diye ortak.
+function linkSkills(targetDir) {
+  const claudeDir  = path.join(targetDir, '.claude');
+  const skillsLink = path.join(claudeDir, 'skills');
+  fs.mkdirSync(skillsLink, { recursive: true });
+
+  for (const skill of SKILL_NAMES) {
+    const src = path.join(SKILLS_DIR, skill);
+    const dst = path.join(skillsLink, skill);
+    if (!fs.existsSync(dst) && fs.existsSync(src)) {
+      try { fs.symlinkSync(src, dst); } catch {}
+    }
+  }
+
+  const mdSrc = path.join(SKILLS_DIR, '.claude', 'CLAUDE.md');
+  const mdDst = path.join(claudeDir, 'CLAUDE.md');
+  if (fs.existsSync(mdSrc) && !fs.existsSync(mdDst)) {
+    try { fs.copyFileSync(mdSrc, mdDst); } catch {}
+  }
+}
+
 function startClaudeProcess(ws, wsId, mode, opts = {}) {
   const model  = ALLOWED_MODELS.includes(opts.model)   ? opts.model  : null;
   const effort = ALLOWED_EFFORTS.includes(opts.effort) ? opts.effort : null;
@@ -209,26 +236,7 @@ function startClaudeProcess(ws, wsId, mode, opts = {}) {
   const sessionDir = path.join(SESSIONS_DIR, sessionId);
   fs.mkdirSync(sessionDir, { recursive: true });
 
-  // Skills'i symlink ile bağla — repo'nun önerdiği kurulum şekli
-  const skillsLink = path.join(sessionDir, '.claude', 'skills');
-  fs.mkdirSync(path.join(sessionDir, '.claude'), { recursive: true });
-
-  const skillNames = ['deep-research', 'academic-paper', 'academic-paper-reviewer', 'academic-pipeline', 'grad-grounded-theory', 'academic-pptx-skill'];
-  fs.mkdirSync(skillsLink, { recursive: true });
-  for (const skill of skillNames) {
-    const src = path.join(SKILLS_DIR, skill);
-    const dst = path.join(skillsLink, skill);
-    if (!fs.existsSync(dst) && fs.existsSync(src)) {
-      try { fs.symlinkSync(src, dst); } catch {}
-    }
-  }
-
-  // CLAUDE.md'yi de kopyala
-  const claudeMdSrc = path.join(SKILLS_DIR, '.claude', 'CLAUDE.md');
-  const claudeMdDst = path.join(sessionDir, '.claude', 'CLAUDE.md');
-  if (fs.existsSync(claudeMdSrc) && !fs.existsSync(claudeMdDst)) {
-    fs.copyFileSync(claudeMdSrc, claudeMdDst);
-  }
+  linkSkills(sessionDir);
 
   // İlk sistem mesajı — Türkçe + mod yönlendirmesi
   const modeHints = {
@@ -674,6 +682,107 @@ ${text.slice(0, 12000)}`;
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── Sunum üretimi (PPTX) ───────────────────────────────────────
+// Sohbette yazılmış makaleyi academic-pptx-skill ile akademik sunuma çevirir.
+// Metin argv'den değil dosyadan okutulur (uzun makaleler argüman sınırını aşar).
+app.post('/api/prepare-pptx', async (req, res) => {
+  const { text } = req.body;
+  if (!text || !text.trim()) return res.status(400).json({ error: 'Metin gerekli' });
+
+  const id = uuidv4().slice(0, 8);
+  const workDir = path.join(DOWNLOADS_DIR, 'pptx-' + id);
+
+  try {
+    fs.mkdirSync(workDir, { recursive: true });
+    linkSkills(workDir);
+    fs.writeFileSync(path.join(workDir, 'makale.md'), text, 'utf8');
+
+    const prompt = `Bu klasördeki "makale.md" dosyasında sohbette yazılmış akademik bir metin var.
+
+GÖREV: academic-pptx-skill'i kullanarak bu metni akademik bir sunuma dönüştür ve
+sonucu bu klasöre "sunum.pptx" adıyla yaz.
+
+KURALLAR:
+- İçeriği YALNIZCA makale.md'den çıkar. Yeni bulgu, veri, sayı veya kaynak UYDURMA.
+- Metinde olmayan bir bilgi gerekiyorsa slaytta [köşeli parantez] ile yer tutucu bırak.
+- Slayt metinleri Türkçe olsun.
+- pptxgenjs zaten kurulu ve NODE_PATH ayarlı — npm install ETME, doğrudan
+  require('pptxgenjs') ile kullan.
+- Soru sorma, onay bekleme; doğrudan dosyayı üret.
+- Bitirince yalnızca kısa bir Türkçe özet yaz: kaç slayt ve slayt başlıkları.`;
+
+    const { code, err } = await runClaudeIn(workDir, prompt, 300000);
+
+    // Skill dosyayı alt klasöre yazmış olabilir — klasör ağacında ara
+    const pptx = findFirstFile(workDir, '.pptx');
+    if (!pptx) {
+      console.error(`[pptx] Üretilemedi (kod ${code}) ${err ? '— ' + err.slice(0, 300) : ''}`);
+      return res.status(500).json({ error: 'Sunum üretilemedi. Metin çok kısa olabilir veya Claude tamamlayamadı.' });
+    }
+
+    const outName = 'a3i-sunum-' + id + '.pptx';
+    fs.copyFileSync(pptx, path.join(DOWNLOADS_DIR, outName));
+    const slides = countSlides(path.join(DOWNLOADS_DIR, outName));
+    console.log(`[pptx] Üretildi: ${outName} (${slides} slayt)`);
+    res.json({ pptxFile: outName, slides });
+  } catch (e) {
+    console.error('[pptx] Hata:', e.message);
+    res.status(500).json({ error: e.message });
+  } finally {
+    try { fs.rmSync(workDir, { recursive: true, force: true }); } catch {}
+  }
+});
+
+// Claude'u verilen klasörde tek seferlik çalıştırır (dosya üretimi için).
+function runClaudeIn(cwd, prompt, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('claude', ['--print', '--dangerously-skip-permissions', prompt], {
+      cwd,
+      // pptxgenjs backend/node_modules'ta; çalışma klasörü onun altında olmadığı
+      // için require() ancak NODE_PATH ile çözülür.
+      env: { ...process.env, NODE_PATH: path.join(__dirname, 'node_modules') },
+    });
+    let out = '', err = '';
+    let done = false;
+    const finish = fn => (...a) => { if (!done) { done = true; clearTimeout(t); fn(...a); } };
+
+    proc.stdout.on('data', d => out += d.toString());
+    proc.stderr.on('data', d => err += d.toString());
+    proc.on('close', finish(code => resolve({ code, out, err })));
+    proc.on('error', finish(e => reject(e)));
+    const t = setTimeout(finish(() => {
+      try { proc.kill('SIGKILL'); } catch {}
+      reject(new Error('Sunum üretimi zaman aşımına uğradı (5 dk)'));
+    }), timeoutMs);
+  });
+}
+
+// Klasör ağacında verilen uzantıya sahip ilk dosyayı bulur.
+function findFirstFile(dir, ext, depth = 0) {
+  if (depth > 4) return null;
+  let entries = [];
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return null; }
+  for (const e of entries) {
+    if (e.name === '.claude' || e.name === 'node_modules') continue;
+    const p = path.join(dir, e.name);
+    if (e.isFile() && e.name.toLowerCase().endsWith(ext)) return p;
+    if (e.isDirectory()) {
+      const found = findFirstFile(p, ext, depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// PPTX bir zip'tir; slayt sayısını içindeki slideN.xml girdilerinden sayar.
+function countSlides(file) {
+  try {
+    const buf = fs.readFileSync(file);
+    return (buf.toString('latin1').match(/ppt\/slides\/slide\d+\.xml/g) || [])
+      .filter((v, i, a) => a.indexOf(v) === i).length;
+  } catch { return 0; }
+}
 
 app.get('/api/download/:file', (req, res) => {
   const filePath = require('path').join(DOWNLOADS_DIR, require('path').basename(req.params.file));
