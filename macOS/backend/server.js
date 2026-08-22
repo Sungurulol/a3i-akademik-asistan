@@ -2,7 +2,6 @@ const multer = require('multer');
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
-const cors = require('cors');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -16,7 +15,10 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-app.use(cors());
+// CORS bilerek açılmıyor: frontend aynı origin'den (express.static) servis
+// ediliyor, dolayısıyla cross-origin izni gerekmiyor. Kısıtsız bir cors(),
+// kullanıcının ziyaret ettiği herhangi bir sitenin localhost:3000'deki
+// API'ye istek atmasına (drive-by CSRF) izin verirdi.
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
@@ -25,6 +27,27 @@ const SESSIONS_DIR = path.join(__dirname, '../sessions');
 if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR, { recursive: true });
 const CHATS_DIR = path.join(__dirname, '../Chats');
 if (!fs.existsSync(CHATS_DIR)) fs.mkdirSync(CHATS_DIR, { recursive: true });
+
+// ── Yol güvenliği ──────────────────────────────────────────────
+// Dışarıdan gelen sohbet/oturum adı doğrudan path.join'e verilirse '../..'
+// gibi bir adla taban klasörün dışına çıkılabilir (en kötüsü: DELETE'teki
+// rmSync). Bu yardımcı adı doğrular ve çözülen yolun taban klasörün içinde
+// kaldığını garanti eder; aksi halde null döner.
+function safePathIn(baseDir, name, ...segments) {
+  if (typeof name !== 'string') return null;
+  const clean = name.trim();
+  if (!clean || clean === '.' || clean === '..') return null;
+  if (/[\\/\0]/.test(clean)) return null;   // yol ayırıcı veya NUL içeren ad kabul edilmez
+  const root = path.resolve(baseDir);
+  const resolved = path.resolve(root, clean, ...segments);
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) return null;
+  return resolved;
+}
+
+// Sohbet klasörü — ya da içindeki bir dosya — için güvenli mutlak yol.
+const safeChatPath = (name, ...segments) => safePathIn(CHATS_DIR, name, ...segments);
+// Claude Code oturum klasörü için güvenli mutlak yol.
+const safeSessionPath = (id) => safePathIn(SESSIONS_DIR, id);
 
 // Startup'ta eski sessions temizle
 try {
@@ -993,9 +1016,9 @@ app.get('/api/chats-search', (req, res) => {
 });
 
 app.get('/api/chats/:name', (req, res) => {
+  const logFile = safeChatPath(req.params.name, 'conversation.jsonl');
+  if (!logFile) return res.status(400).json({ error: 'Geçersiz sohbet adı' });
   try {
-    const name = decodeURIComponent(req.params.name);
-    const logFile = path.join(CHATS_DIR, name, 'conversation.jsonl');
     if (!fs.existsSync(logFile)) return res.json([]);
     const msgs = fs.readFileSync(logFile, 'utf8').trim().split('\n')
       .filter(Boolean).map(l => JSON.parse(l));
@@ -1004,10 +1027,10 @@ app.get('/api/chats/:name', (req, res) => {
 });
 
 app.post('/api/chats/:name/message', (req, res) => {
+  const chatPath = safeChatPath(req.params.name);
+  if (!chatPath) return res.status(400).json({ error: 'Geçersiz sohbet adı' });
   try {
-    const name = decodeURIComponent(req.params.name);
     const { role, text } = req.body;
-    const chatPath = path.join(CHATS_DIR, name);
     fs.mkdirSync(chatPath, { recursive: true });
     const line = JSON.stringify({ role, text, ts: new Date().toISOString() }) + '\n';
     fs.appendFileSync(path.join(chatPath, 'conversation.jsonl'), line);
@@ -1019,10 +1042,12 @@ app.post('/api/chats/:name/message', (req, res) => {
 });
 
 app.post('/api/chats/:name/session', (req, res) => {
+  const chatPath = safeChatPath(req.params.name);
+  if (!chatPath) return res.status(400).json({ error: 'Geçersiz sohbet adı' });
   try {
-    const name = decodeURIComponent(req.params.name);
     const { sessionId } = req.body;
-    const chatPath = path.join(CHATS_DIR, name);
+    // session_id.txt sonradan SESSIONS_DIR ile birleştiriliyor — burada doğrula.
+    if (!safeSessionPath(sessionId)) return res.status(400).json({ error: 'Geçersiz session id' });
     fs.mkdirSync(chatPath, { recursive: true });
     fs.writeFileSync(path.join(chatPath, 'session_id.txt'), sessionId);
     res.json({ ok: true });
@@ -1030,13 +1055,14 @@ app.post('/api/chats/:name/session', (req, res) => {
 });
 
 app.patch('/api/chats/:name/rename', (req, res) => {
+  const oldPath = safeChatPath(req.params.name);
+  if (!oldPath) return res.status(400).json({ error: 'Geçersiz sohbet adı' });
   try {
-    const oldName = decodeURIComponent(req.params.name);
     const { newName } = req.body;
+    if (typeof newName !== 'string') return res.status(400).json({ error: 'Geçersiz isim' });
     const sanitized = newName.replace(/[/\\:*?"<>|.]/g, '').trim().slice(0, 50);
-    if (!sanitized) return res.status(400).json({ error: 'Geçersiz isim' });
-    const oldPath = path.join(CHATS_DIR, oldName);
-    const newPath = path.join(CHATS_DIR, sanitized);
+    const newPath = safeChatPath(sanitized);
+    if (!newPath) return res.status(400).json({ error: 'Geçersiz isim' });
     if (!fs.existsSync(oldPath)) return res.status(404).json({ error: 'Bulunamadı' });
     if (fs.existsSync(newPath)) return res.status(409).json({ error: 'Bu isim zaten var' });
     fs.renameSync(oldPath, newPath);
@@ -1045,16 +1071,16 @@ app.patch('/api/chats/:name/rename', (req, res) => {
 });
 
 app.delete('/api/chats/:name', (req, res) => {
+  const name = req.params.name;
+  const chatPath = safeChatPath(name);
+  if (!chatPath) return res.status(400).json({ error: 'Geçersiz sohbet adı' });
   try {
-    const name = decodeURIComponent(req.params.name);
-    const chatPath = path.join(CHATS_DIR, name);
-
     // Session klasörünü de sil
     const sessionIdFile = path.join(chatPath, 'session_id.txt');
     if (fs.existsSync(sessionIdFile)) {
       const sessionId = fs.readFileSync(sessionIdFile, 'utf8').trim();
-      const sessionPath = path.join(SESSIONS_DIR, sessionId);
-      if (fs.existsSync(sessionPath)) {
+      const sessionPath = safeSessionPath(sessionId);
+      if (sessionPath && fs.existsSync(sessionPath)) {
         fs.rmSync(sessionPath, { recursive: true, force: true });
         console.log(`[DELETE] Session silindi: ${sessionId}`);
       }
@@ -1072,13 +1098,13 @@ app.delete('/api/chats/:name', (req, res) => {
 });
 
 app.get('/api/chats/:name/session-id', (req, res) => {
+  const file = safeChatPath(req.params.name, 'session_id.txt');
+  if (!file) return res.status(400).json({ error: 'Geçersiz sohbet adı' });
   try {
-    const name = decodeURIComponent(req.params.name);
-    const file = path.join(CHATS_DIR, name, 'session_id.txt');
     if (!fs.existsSync(file)) return res.json({ sessionId: null });
     const sessionId = fs.readFileSync(file, 'utf8').trim();
-    const sessionPath = path.join(SESSIONS_DIR, sessionId);
-    if (!fs.existsSync(sessionPath)) return res.json({ sessionId: null });
+    const sessionPath = safeSessionPath(sessionId);
+    if (!sessionPath || !fs.existsSync(sessionPath)) return res.json({ sessionId: null });
     res.json({ sessionId });
   } catch { res.json({ sessionId: null }); }
 });
