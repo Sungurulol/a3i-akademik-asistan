@@ -238,7 +238,7 @@ if exist "%TMP_PPTX_DIR%" rmdir /s /q "%TMP_PPTX_DIR%" 2>nul
 
 :: -- Claude oturumu ------------------------------------------------
 echo.
-call claude auth status >nul 2>&1
+call claude auth status <nul >nul 2>&1
 if not errorlevel 1 (
   echo  Claude oturumu zaten acik.
   goto AUTH_OK
@@ -311,33 +311,42 @@ exit /b 0
 
 :: Git calisiyorsa 0 doner.
 :GIT_CHECK
-git --version >nul 2>&1
+git --version <nul >nul 2>&1
 exit /b %ERRORLEVEL%
 
 :: Node.js 18+ varsa 0, yoksa 1 doner.
 :NODE_CHECK
-node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 18 ? 0 : 1)" >nul 2>&1
+node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 18 ? 0 : 1)" <nul >nul 2>&1
 exit /b %ERRORLEVEL%
 
 :: Calisan bir Python 3.10+ bulursa PY degiskenini ayarlar ve 0 doner.
+:: WindowsApps altindaki python.exe / py.exe gercek Python degil, Microsoft
+:: Store / Python yukleyicisi kisayoludur: Python kurulu degilse ekranda
+:: gorunmeyen bir "kurulsun mu?" sorusuyla sonsuza kadar bekleyebilir. Bu
+:: yuzden atlanir; denenen her komutun girisi de bos (<nul) verilir.
 :PY_CHECK
 set "PY="
-python -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
-if not errorlevel 1 (
-  set "PY=python"
-  exit /b 0
-)
-py -3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
-if not errorlevel 1 (
-  set "PY=py -3"
-  exit /b 0
-)
+for /f "delims=" %%i in ('where python 2^>nul') do if not defined PY call :PY_TRY "%%i" ""
+if defined PY exit /b 0
+for /f "delims=" %%i in ('where py 2^>nul') do if not defined PY call :PY_TRY "%%i" "-3"
+if defined PY exit /b 0
+for /d %%d in ("%ProgramFiles%\Python3*" "%LOCALAPPDATA%\Programs\Python\Python3*" "%SystemDrive%\Python3*") do if not defined PY if exist "%%~d\python.exe" call :PY_TRY "%%~d\python.exe" ""
+if defined PY exit /b 0
 exit /b 1
+
+:: %1 = python.exe / py.exe yolu, %2 = ek secenek (py icin -3)
+:PY_TRY
+set "PY_CAND=%~1"
+if /i not "%PY_CAND:\WindowsApps\=%"=="%PY_CAND%" exit /b 1
+"%PY_CAND%" %~2 -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" <nul >nul 2>&1
+if errorlevel 1 exit /b 1
+set "PY="%PY_CAND%" %~2"
+exit /b 0
 
 :: Java 11+ varsa 0 doner. "java --version" yalnizca Java 9+ surumlerinde
 :: calisir; Java 8 varsa yenisi kurulur.
 :JAVA_CHECK
-java --version >nul 2>&1
+java --version <nul >nul 2>&1
 exit /b %ERRORLEVEL%
 
 :FAIL

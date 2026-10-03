@@ -759,8 +759,11 @@ function runMarkitdownWith({ cmd, pre }, filePath) {
     try {
       // Windows'ta Python, çıktıyı borudan sistem kod sayfasıyla (cp1254) yazar;
       // Türkçe karakterler bozulmasın / UnicodeEncodeError olmasın diye UTF-8.
+      // stdin kapalı: Windows'taki WindowsApps python.exe kısayolu Python
+      // kurulu değilse "kurulsun mu?" diye girdi bekleyip asılı kalmasın.
       proc = spawn(cmd, [...pre, filePath], {
         windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
         env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' },
       });
     } catch { return resolve(null); }
