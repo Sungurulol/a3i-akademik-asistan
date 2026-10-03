@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![versiyon](https://img.shields.io/badge/versiyon-3.0.0-blue?style=flat-square)
+![versiyon](https://img.shields.io/badge/versiyon-3.0.1-blue?style=flat-square)
 ![lisans](https://img.shields.io/badge/lisans-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/Claude%20Code%20üzerine-kurulu-orange?style=flat-square)
@@ -55,18 +55,28 @@ Uzun bir işe başlamadan önce A³I size birkaç şıklı soru sorar; böylece 
 
 ## Kurulum
 
+**Önerilen — otomatik güncelleme için `git clone` ile indirin:**
+
+```bash
+git clone https://github.com/Sungurulol/a3i-akademik-asistan.git
+```
+
+Git kullanmıyorsanız GitHub'da **Code → Download ZIP** ile de indirebilirsiniz; bu durumda A³I kendini güncelleyemez, yeni sürüm için yeniden indirmeniz gerekir.
+
 ### macOS
 
 ```bash
-# 1. macOS/ klasörünü indirin
-# 2. kurulum.command dosyasına sağ tıklayın → Aç → Aç
+# 1. macOS/ klasörüne girin
+# 2. kurulum.command dosyasına çift tıklayın
 # 3. Ekrandaki adımları takip edin
 ```
+
+> "Açılamıyor, geliştirici doğrulanamadı" uyarısı çıkarsa: macOS 14 ve öncesinde dosyaya **sağ tıklayın → Aç → Aç**; macOS 15 ve sonrasında **Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç** deyin. Kurulum bu işareti kaldırır, `baslat.command` bir daha sormaz.
 
 ### Windows
 
 ```bash
-# 1. Windows/ klasörünü indirin
+# 1. Windows\ klasörüne girin
 # 2. kurulum.bat dosyasına sağ tıklayın → Yönetici olarak çalıştır
 #    (çift tıklarsanız yönetici iznini kendisi ister)
 # 3. Ekrandaki adımları takip edin
@@ -96,7 +106,9 @@ baslat.bat dosyasına çift tıklayın
 ```
 
 Tarayıcı otomatik olarak `http://localhost:3000` adresinde açılır.  
-Her başlatmada A³I **kendini günceller** (değişiklik varsa kurulumu yeniden çalıştırır), akademik skill dosyalarını **otomatik günceller** ve Claude oturumunuzu **otomatik yeniler**.
+Her başlatmada A³I **kendini günceller** (`git clone` ile indirildiyse; değişiklik varsa kurulumu yeniden çalıştırır), akademik skill dosyalarını **otomatik günceller** ve Claude oturumunuzu **otomatik yeniler**.
+
+Durdurmak için pencereyi kapatın (macOS'ta `Ctrl+C` da olur).
 
 ---
 
@@ -123,10 +135,11 @@ Her başlatmada A³I **kendini günceller** (değişiklik varsa kurulumu yeniden
 │   github.com/Imbad0202/academic-research-skills │
 └─────────────────────────────────────────────┘
 
-PDF             → opendataloader-pdf (Java) ─┐
-DOCX / TXT / MD → MarkItDown ────────────────┴→ temiz Markdown → prompt'a enjekte edilir
+PDF                          → opendataloader-pdf (Java) ─┐
+DOCX / PPTX / XLSX / TXT / MD → MarkItDown (.venv) ─────────┴→ temiz Markdown → prompt'a enjekte edilir
 
 Üretilen dosyalar → downloads/ → kenar çubuğundaki Dosyalar bölümü
+PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 ```
 
 ---
@@ -136,8 +149,22 @@ DOCX / TXT / MD → MarkItDown ────────────────�
 | | macOS | Windows |
 |---|---|---|
 | İşletim Sistemi | macOS 12+ | Windows 10/11 |
-| Otomatik Kurulan | Homebrew, Git, Node.js, Python, MarkItDown, Java 11+, Claude Code | Chocolatey, Git, Node.js, Python, MarkItDown, Java 11+, Claude Code |
+| Otomatik Kurulan | Homebrew, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code | Chocolatey, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code |
+| PDF Çıktısı İçin | Google Chrome | Chrome veya Edge (Windows'ta hazır gelir) |
 | Hesap | Claude Pro / Max | Claude Pro / Max |
+
+---
+
+## Sorun Giderme
+
+| Sorun | Çözüm |
+|---|---|
+| "Kurulum bulunamadı" / "Claude Code bulunamadı" | Önce `kurulum.command` / `kurulum.bat` çalıştırın. Kurulumdan hemen sonraysa pencereyi kapatıp yeniden açın. |
+| "3000 portu başka bir program tarafından kullanılıyor" | 3000 portunu kullanan programı (ör. başka bir geliştirme sunucusu) kapatın. A³I yalnızca kendi eski sunucusunu kapatır. |
+| PDF yüklenmiyor | Java 11+ gerekir. Kurulumu yeniden çalıştırın ya da [adoptium.net](https://adoptium.net)'ten kurun. |
+| Word / Excel / PowerPoint yüklenmiyor | MarkItDown kurulamamış olabilir; kurulumu yeniden çalıştırın ve "MarkItDown" adımındaki uyarıya bakın. |
+| PDF çıktısı gelmiyor, yalnızca DOCX var | macOS'ta Google Chrome kurun. |
+| Windows'ta kurulum yönetici izni istiyor | Chocolatey için gereklidir; izni onaylayın. Kurulumu A³I'yı kullanacağınız hesapla yapın. |
 
 ---
 

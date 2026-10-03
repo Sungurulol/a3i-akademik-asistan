@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-3.0.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-3.0.1-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -55,18 +55,28 @@ Before starting a long task, A³I asks a few multiple-choice questions so the re
 
 ## Installation
 
+**Recommended — clone with `git` so A³I can update itself:**
+
+```bash
+git clone https://github.com/Sungurulol/a3i-akademik-asistan.git
+```
+
+Without Git you can use **Code → Download ZIP** on GitHub; A³I then can't update itself and you'll need to download new versions manually.
+
 ### macOS
 
 ```bash
-# 1. Download the macOS/ folder
-# 2. Right-click kurulum.command → Open → Open
+# 1. Open the macOS/ folder
+# 2. Double-click kurulum.command
 # 3. Follow the on-screen steps
 ```
+
+> If macOS says the developer cannot be verified: on macOS 14 and earlier **right-click → Open → Open**; on macOS 15 and later go to **System Settings → Privacy & Security → Open Anyway**. Setup clears this flag, so `baslat.command` won't ask again.
 
 ### Windows
 
 ```bash
-# 1. Download the Windows/ folder
+# 1. Open the Windows\ folder
 # 2. Right-click kurulum.bat → Run as Administrator
 #    (double-clicking also works; it asks for admin rights itself)
 # 3. Follow the on-screen steps
@@ -96,7 +106,9 @@ double-click baslat.bat
 ```
 
 The browser opens automatically at `http://localhost:3000`.  
-On every launch A³I **checks itself for updates**, pulls them, re-runs the installer if it changed, **auto-updates the academic skill files** and **refreshes your Claude session**.
+On every launch A³I **checks itself for updates** (when cloned with `git`), pulls them, re-runs the installer if it changed, **auto-updates the academic skill files** and **refreshes your Claude session**.
+
+To stop it, close the window (or press `Ctrl+C` on macOS).
 
 ---
 
@@ -123,10 +135,11 @@ On every launch A³I **checks itself for updates**, pulls them, re-runs the inst
 │   github.com/Imbad0202/academic-research-skills │
 └─────────────────────────────────────────────┘
 
-PDF            → opendataloader-pdf (Java) ─┐
-DOCX / TXT / MD → MarkItDown ───────────────┴→ clean Markdown → injected into prompt
+PDF                           → opendataloader-pdf (Java) ─┐
+DOCX / PPTX / XLSX / TXT / MD → MarkItDown (.venv) ─────────┴→ clean Markdown → injected into prompt
 
 Generated files → downloads/ → Files pane in the sidebar
+PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 ```
 
 ---
@@ -136,8 +149,22 @@ Generated files → downloads/ → Files pane in the sidebar
 | | macOS | Windows |
 |---|---|---|
 | OS | macOS 12+ | Windows 10/11 |
-| Auto-installed | Homebrew, Git, Node.js, Python, MarkItDown, Java 11+, Claude Code | Chocolatey, Git, Node.js, Python, MarkItDown, Java 11+, Claude Code |
+| Auto-installed | Homebrew, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code | Chocolatey, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code |
+| For PDF export | Google Chrome | Chrome or Edge (built into Windows) |
 | Account | Claude Pro / Max | Claude Pro / Max |
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| "Kurulum bulunamadı" / "Claude Code bulunamadı" (setup / Claude Code not found) | Run `kurulum.command` / `kurulum.bat` first. If you just installed, close and reopen the window. |
+| Port 3000 is used by another program | Close the program using port 3000 (e.g. another dev server). A³I only stops its own previous server. |
+| PDFs won't upload | Java 11+ is required. Re-run setup or install it from [adoptium.net](https://adoptium.net). |
+| Word / Excel / PowerPoint files won't upload | MarkItDown may have failed to install; re-run setup and check the warning in the MarkItDown step. |
+| Only DOCX is produced, no PDF | Install Google Chrome on macOS. |
+| Windows setup asks for admin rights | Chocolatey needs them; approve the prompt. Run setup from the account you'll use A³I with. |
 
 ---
 
