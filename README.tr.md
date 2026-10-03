@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![versiyon](https://img.shields.io/badge/versiyon-3.0.3-blue?style=flat-square)
+![versiyon](https://img.shields.io/badge/versiyon-3.0.4-blue?style=flat-square)
 ![lisans](https://img.shields.io/badge/lisans-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/Claude%20Code%20üzerine-kurulu-orange?style=flat-square)
@@ -170,6 +170,18 @@ PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 ---
 
 ## Sürüm Notları
+
+### v3.0.4
+
+**Güvenlik**
+- Sunucu artık yalnızca bu bilgisayardan erişilebilir (127.0.0.1). Daha önce aynı ağdaki (ör. okul/yurt Wi-Fi'ı) herhangi bir cihaz A³I'ya bağlanıp Claude'u onay sormadan bilgisayarınızda çalıştırabilirdi; Windows'taki Güvenlik Duvarı uyarısı da kalktı
+- Tarayıcıda açık başka bir sitenin A³I'ya WebSocket ile bağlanması ve DNS rebinding ile API'ye erişmesi engellendi (Origin ve Host doğrulaması)
+
+**Kurulum**
+- MarkItDown ve skill indirmesi artık ilerleme gösteriyor; birkaç dakika süren adımlar donmuş gibi görünmüyor
+- Önceki yarım denemeden kalan bozuk `.venv` otomatik yeniden oluşturuluyor
+- Windows: PATH'te `.bat`/`.cmd` Python kısayolu (ör. pyenv-win) varsa kurulum yarıda kesilmiyor
+- git hiçbir zaman görünmeyen bir kullanıcı adı/şifre sorusunda beklemiyor
 
 ### v3.0.3
 

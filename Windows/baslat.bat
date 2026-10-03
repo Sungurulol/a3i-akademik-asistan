@@ -25,6 +25,8 @@ if not defined CLAUDE_CODE_GIT_BASH_PATH if exist "%ProgramFiles%\Git\bin\bash.e
 set "GIT_CONFIG_COUNT=1"
 set "GIT_CONFIG_KEY_0=safe.directory"
 set "GIT_CONFIG_VALUE_0=*"
+:: git hicbir zaman ekranda gorunmeyen bir kullanici adi/sifre sorusunda beklemesin.
+set "GIT_TERMINAL_PROMPT=0"
 
 cls
 echo.
@@ -117,7 +119,7 @@ if exist "%SKILLS_DIR%\.git" (
 )
 echo  Skills indiriliyor...
 if not exist "%SCRIPT_DIR%skills" mkdir "%SCRIPT_DIR%skills"
-git clone --quiet https://github.com/Imbad0202/academic-research-skills.git "%SKILLS_DIR%"
+git clone --progress https://github.com/Imbad0202/academic-research-skills.git "%SKILLS_DIR%"
 if exist "%SKILLS_DIR%\.git" (
   echo  Skills indirildi.
 ) else (

@@ -16,6 +16,8 @@ for d in "$HOME/.local/bin" /usr/local/bin /opt/homebrew/bin; do
   fi
 done
 export PATH
+# git hiçbir zaman ekranda görünmeyen bir kullanıcı adı/şifre sorusunda beklemesin.
+export GIT_TERMINAL_PROMPT=0
 
 clear
 echo ""
@@ -119,12 +121,16 @@ fi
 # Homebrew Python'u `pip install --user`'ı reddeder (PEP 668). MarkItDown
 # uygulamaya özel bir sanal ortama (.venv) kurulur.
 if [ -n "$PY" ]; then
-  info "MarkItDown kuruluyor (dosya işleme için)..."
+  info "MarkItDown kuruluyor (dosya işleme için, birkaç dakika sürebilir)..."
   VENV="$SCRIPT_DIR/.venv"
+  md_install() {
+    [ -x "$VENV/bin/python" ] &&
+      "$VENV/bin/python" -m pip install --upgrade --disable-pip-version-check \
+        'markitdown[pdf,docx,pptx,xlsx]' </dev/null
+  }
   [ -x "$VENV/bin/python" ] || "$PY" -m venv "$VENV"
-  if [ -x "$VENV/bin/python" ] &&
-     "$VENV/bin/python" -m pip install --upgrade --quiet --disable-pip-version-check \
-       'markitdown[pdf,docx,pptx,xlsx]'; then
+  # Önceki yarım bir denemeden kalan bozuk sanal ortam: sıfırdan oluşturulur.
+  if md_install || { info "Sanal ortam yeniden oluşturuluyor..."; "$PY" -m venv --clear "$VENV" && md_install; }; then
     ok "MarkItDown kuruldu"
   else
     warn "MarkItDown kurulamadı — Word/Excel/PowerPoint yükleme çalışmayabilir"
@@ -186,7 +192,7 @@ else
   info "GitHub'dan indiriliyor..."
   mkdir -p "$SCRIPT_DIR/skills"
   rm -rf "$SKILLS_DIR"   # yarım kalmış önceki indirme
-  git clone --quiet https://github.com/Imbad0202/academic-research-skills.git "$SKILLS_DIR"
+  git clone --progress https://github.com/Imbad0202/academic-research-skills.git "$SKILLS_DIR"
   [ -d "$SKILLS_DIR/.claude" ] || fail_exit "Skill dosyaları indirilemedi"
   ok "Skills indirildi"
 fi

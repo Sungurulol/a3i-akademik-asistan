@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-3.0.3-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-3.0.4-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -170,6 +170,18 @@ PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 ---
 
 ## Changelog
+
+### v3.0.4
+
+**Security**
+- The server is now reachable only from this computer (127.0.0.1). Previously any device on the same network (e.g. school/dorm Wi-Fi) could connect to A³I and run Claude on your machine without confirmation; this also removes the Windows Firewall prompt
+- Other websites open in the browser can no longer connect to A³I over WebSocket or reach the API via DNS rebinding (Origin and Host validation)
+
+**Setup**
+- MarkItDown and skill downloads now show progress, so multi-minute steps no longer look frozen
+- A broken `.venv` left by an earlier partial attempt is recreated automatically
+- Windows: a `.bat`/`.cmd` Python shim on PATH (e.g. pyenv-win) no longer aborts setup
+- git never waits on an invisible username/password prompt
 
 ### v3.0.3
 

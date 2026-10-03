@@ -18,9 +18,11 @@ set "CLAUDE_BIN=%USERPROFILE%\.local\bin"
 set "GIT_CONFIG_COUNT=1"
 set "GIT_CONFIG_KEY_0=safe.directory"
 set "GIT_CONFIG_VALUE_0=*"
+:: git hicbir zaman ekranda gorunmeyen bir kullanici adi/sifre sorusunda beklemesin.
+set "GIT_TERMINAL_PROMPT=0"
 
 :: -- Yonetici yetkisi --------------------------------------------
-:: Chocolatey yonetici ister. Yetki yoksa ayni dosyayi yonetici olarak
+:: Program kurulumlari yonetici ister. Yetki yoksa ayni dosyayi yonetici olarak
 :: yeniden acar ve bitmesini bekler.
 fltmc >nul 2>&1
 if not errorlevel 1 goto IS_ADMIN
@@ -114,18 +116,26 @@ echo  [UYARI] Python kurulamadi. Word/Excel/PowerPoint dosyasi yukleme calismaya
 goto PY_DONE
 :PY_OK
 echo  Python hazir.
-echo  MarkItDown kuruluyor (dosya isleme icin)...
+echo  MarkItDown kuruluyor (dosya isleme icin, birkac dakika surebilir)...
 :: Uygulamaya ozel sanal ortam: kullanici profilinden ve PATH'ten bagimsiz.
+:: --quiet kullanilmaz: indirme suruyor mu gorunsun, donmus sanilmasin.
 set "VENV_PY=%SCRIPT_DIR%.venv\Scripts\python.exe"
 if not exist "%VENV_PY%" %PY% -m venv "%SCRIPT_DIR%.venv"
 if not exist "%VENV_PY%" goto MD_USER
-"%VENV_PY%" -m pip install --upgrade --quiet --disable-pip-version-check "markitdown[pdf,docx,pptx,xlsx]"
+"%VENV_PY%" -m pip install --upgrade --disable-pip-version-check "markitdown[pdf,docx,pptx,xlsx]" <nul
+if not errorlevel 1 goto MD_OK
+:: Onceki yarim bir denemeden kalan bozuk sanal ortam: sifirdan olusturulur.
+echo  Sanal ortam yeniden olusturuluyor...
+%PY% -m venv --clear "%SCRIPT_DIR%.venv"
+if not exist "%VENV_PY%" goto MD_USER
+"%VENV_PY%" -m pip install --upgrade --disable-pip-version-check "markitdown[pdf,docx,pptx,xlsx]" <nul
 if errorlevel 1 goto MD_USER
+:MD_OK
 echo  MarkItDown hazir.
 goto PY_DONE
 :MD_USER
 :: Sanal ortam olmazsa kullanici klasorune kurulur.
-%PY% -m pip install --user --upgrade --quiet --no-warn-script-location "markitdown[pdf,docx,pptx,xlsx]"
+%PY% -m pip install --user --upgrade --disable-pip-version-check --no-warn-script-location "markitdown[pdf,docx,pptx,xlsx]" <nul
 if errorlevel 1 (
   echo  [UYARI] MarkItDown kurulamadi. Word/Excel/PowerPoint dosyasi yukleme calismayabilir.
 ) else (
@@ -147,7 +157,7 @@ goto JAVA_DONE
 echo  Java hazir.
 :JAVA_DONE
 
-:: -- 6. Claude Code ------------------------------------------------
+:: -- 5. Claude Code ------------------------------------------------
 :: Resmi Windows kurulumu claude.exe kurar (%USERPROFILE%\.local\bin).
 :: Olmazsa npm ile kurulur.
 echo.
@@ -172,7 +182,7 @@ if errorlevel 1 (
 if exist "%CLAUDE_BIN%\claude.exe" powershell -NoProfile -ExecutionPolicy Bypass -Command "$d = Join-Path $env:USERPROFILE '.local\bin'; $p = [string][Environment]::GetEnvironmentVariable('Path','User'); if (($p -split ';') -notcontains $d) { [Environment]::SetEnvironmentVariable('Path', (($p.TrimEnd(';') + ';' + $d).TrimStart(';')), 'User') }"
 echo  Claude Code hazir.
 
-:: -- 7. Backend paketleri ------------------------------------------
+:: -- 6. Backend paketleri ------------------------------------------
 :: npm bir .cmd dosyasidir; CALL olmadan cagrilirsa bu betik orada biter.
 echo.
 echo  [6/7] Backend paketleri kuruluyor...
@@ -186,7 +196,7 @@ if not "%NPM_ERR%"=="0" (
 )
 echo  Paketler hazir.
 
-:: -- 8. Skill dosyalari --------------------------------------------
+:: -- 7. Skill dosyalari --------------------------------------------
 echo.
 echo  [7/7] Akademik skill dosyalari indiriliyor...
 set "SKILLS_DIR=%SCRIPT_DIR%skills\academic-research-skills"
@@ -197,7 +207,7 @@ if exist "%SKILLS_DIR%\.claude" (
 if not exist "%SCRIPT_DIR%skills" mkdir "%SCRIPT_DIR%skills"
 :: Yarim kalmis bir onceki indirme varsa temizlenir.
 if exist "%SKILLS_DIR%" rmdir /s /q "%SKILLS_DIR%"
-git clone --quiet https://github.com/Imbad0202/academic-research-skills.git "%SKILLS_DIR%"
+git clone --progress https://github.com/Imbad0202/academic-research-skills.git "%SKILLS_DIR%"
 if not exist "%SKILLS_DIR%\.claude" (
   set "FAIL_MSG=Skill dosyalari indirilemedi."
   goto FAIL
@@ -340,6 +350,9 @@ exit /b 1
 :PY_TRY
 set "PY_CAND=%~1"
 if /i not "%PY_CAND:\WindowsApps\=%"=="%PY_CAND%" exit /b 1
+:: Yalnizca .exe: pyenv-win gibi .bat/.cmd kisayollari CALL olmadan
+:: calistirilirsa bu betik orada biter.
+if /i not "%PY_CAND:~-4%"==".exe" exit /b 1
 "%PY_CAND%" %~2 -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" <nul >nul 2>&1
 if errorlevel 1 exit /b 1
 set "PY="%PY_CAND%" %~2"

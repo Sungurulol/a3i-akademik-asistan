@@ -20,6 +20,8 @@ for d in "$HOME/.local/bin" /usr/local/bin /opt/homebrew/bin; do
   fi
 done
 export PATH
+# git hiçbir zaman ekranda görünmeyen bir kullanıcı adı/şifre sorusunda beklemesin.
+export GIT_TERMINAL_PROMPT=0
 
 GREEN='\033[0;32m'; BLUE='\033[0;34m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 ok()   { echo -e "  ${GREEN}✓${NC} $1"; }
@@ -83,7 +85,7 @@ elif [ -d "$SKILLS_DIR/.git" ]; then
 else
   info "Skills indiriliyor..."
   mkdir -p "$SCRIPT_DIR/skills"
-  if git clone --quiet https://github.com/Imbad0202/academic-research-skills.git "$SKILLS_DIR"; then
+  if git clone --progress https://github.com/Imbad0202/academic-research-skills.git "$SKILLS_DIR"; then
     ok "Skills indirildi"
   else
     warn "Skills indirilemedi"

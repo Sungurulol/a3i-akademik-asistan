@@ -81,9 +81,40 @@ if (IS_WIN && !process.env.JAVA_TOOL_OPTIONS) {
   process.env.JAVA_TOOL_OPTIONS = '-Dfile.encoding=UTF-8';
 }
 
+// ── Yalnızca bu bilgisayardan erişim ───────────────────────────
+// Sunucu Claude'u --dangerously-skip-permissions ile çalıştırıyor: ona
+// ulaşabilen herkes bu bilgisayarda komut çalıştırabilir. Bu yüzden
+//  - yalnızca loopback'te (127.0.0.1) dinlenir; aynı ağdaki cihazlar bağlanamaz,
+//  - Host başlığı yerel olmalı; DNS rebinding ile başka bir alan adının
+//    127.0.0.1'e yönlendirilip API'ye erişmesi engellenir,
+//  - WebSocket'in Origin'i sayfanın kendisi olmalı; WebSocket CORS'a tabi
+//    olmadığından aksi halde kullanıcının açtığı herhangi bir site
+//    ws://localhost:3000'e bağlanıp Claude'a komut verebilirdi.
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+function isLocalHost(host) {
+  if (typeof host !== 'string') return false;
+  return LOCAL_HOSTNAMES.has(host.toLowerCase().replace(/:\d+$/, ''));
+}
+
+function isSameOrigin(origin, host) {
+  if (!origin) return true;   // tarayıcı dışı yerel istemci (Origin göndermez)
+  try { return new URL(origin).host.toLowerCase() === String(host).toLowerCase(); }
+  catch { return false; }
+}
+
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({
+  server,
+  verifyClient: ({ origin, req }) =>
+    isLocalHost(req.headers.host) && isSameOrigin(origin, req.headers.host),
+});
+
+app.use((req, res, next) => {
+  if (isLocalHost(req.headers.host)) return next();
+  res.status(403).send('Forbidden');
+});
 
 // CORS bilerek açılmıyor: frontend aynı origin'den (express.static) servis
 // ediliyor, dolayısıyla cross-origin izni gerekmiyor. Kısıtsız bir cors(),
@@ -1460,7 +1491,7 @@ app.get('/api/health', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`\n✓ Akademik Asistan: http://localhost:${PORT}`);
   console.log(`✓ Skills: ${SKILLS_DIR}\n`);
 });
