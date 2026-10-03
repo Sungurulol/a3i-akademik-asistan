@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-3.0.1-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-3.0.2-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -89,7 +89,7 @@ Without Git you can use **Code → Download ZIP** on GitHub; A³I then can't upd
 
 The installer automatically sets up:
 - **macOS:** Homebrew · Git · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code
-- **Windows:** Chocolatey · Git · Node.js · Python · MarkItDown · Java (OpenJDK) · Claude Code
+- **Windows:** Git · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code — via the built-in **winget** (Chocolatey if winget is missing)
 
 > Java 11+ is required by the PDF parser and is installed for you — no manual step.
 
@@ -149,7 +149,7 @@ PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 | | macOS | Windows |
 |---|---|---|
 | OS | macOS 12+ | Windows 10/11 |
-| Auto-installed | Homebrew, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code | Chocolatey, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code |
+| Auto-installed | Homebrew, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code | winget (or Chocolatey), Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code |
 | For PDF export | Google Chrome | Chrome or Edge (built into Windows) |
 | Account | Claude Pro / Max | Claude Pro / Max |
 
@@ -164,11 +164,19 @@ PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 | PDFs won't upload | Java 11+ is required. Re-run setup or install it from [adoptium.net](https://adoptium.net). |
 | Word / Excel / PowerPoint files won't upload | MarkItDown may have failed to install; re-run setup and check the warning in the MarkItDown step. |
 | Only DOCX is produced, no PDF | Install Google Chrome on macOS. |
-| Windows setup asks for admin rights | Chocolatey needs them; approve the prompt. Run setup from the account you'll use A³I with. |
+| Windows setup asks for admin rights | Needed to install programs; approve the prompt. Run setup from the account you'll use A³I with. |
+| Windows setup looks frozen on a step | A download is probably still running — wait. If you clicked inside the window, setup pauses; press **Enter** to resume. |
 
 ---
 
 ## Changelog
+
+### v3.0.2
+
+**Windows setup**
+- Programs are now installed with the built-in **winget**; Chocolatey is only used if winget is missing or fails for a package. On some networks the download from `community.chocolatey.org` hung, so setup looked frozen at the first step
+- If everything is already installed, no package manager is installed at all
+- Warns up front that clicking inside the window pauses setup (QuickEdit)
 
 ### v3.0.1
 

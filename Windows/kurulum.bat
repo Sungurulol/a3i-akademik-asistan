@@ -49,40 +49,36 @@ echo.
 echo  Internet baglantisi gereklidir.
 echo  Yaklasik 5-10 dakika surebilir.
 echo.
+echo  ONEMLI: Kurulum sirasinda bu pencerenin icine tiklamayin.
+echo  Tiklarsaniz kurulum durur; devam etmesi icin Enter'a basin.
+echo.
 pause
 
 call :REFRESH_PATH
 
-:: -- 1. Chocolatey ------------------------------------------------
-echo.
-echo  [1/8] Chocolatey kontrol ediliyor...
-where choco >nul 2>&1
-if not errorlevel 1 goto CHOCO_OK
-if exist "%CHOCO_BIN%\choco.exe" goto CHOCO_OK
-echo  Chocolatey kuruluyor...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
-:CHOCO_OK
-:: Chocolatey ayri bir PowerShell surecinde kuruldugu icin bu pencerenin
-:: PATH'i guncel degil; elle eklenir.
-call :REFRESH_PATH
-where choco >nul 2>&1
-if errorlevel 1 (
-  set "FAIL_MSG=Chocolatey kurulamadi."
-  goto FAIL
+:: -- Paket yoneticisi ----------------------------------------------
+:: Oncelik Windows 10/11'de hazir gelen winget'te: Microsoft sunucularindan
+:: indirir, ayrica bir sey kurmak gerekmez. Chocolatey yalnizca winget yoksa
+:: ya da bir paketi kuramazsa, o da gercekten gerekirse kurulur
+:: (community.chocolatey.org'dan indirme bazi aglarda cok yavas/takiliyor).
+set "USE_WINGET="
+where winget >nul 2>&1
+if not errorlevel 1 set "USE_WINGET=1"
+if defined USE_WINGET (
+  echo  Paket yoneticisi: winget
+) else (
+  echo  winget bulunamadi; gerekirse Chocolatey kullanilacak.
 )
-echo  Chocolatey hazir.
 
-:: -- 2. Git --------------------------------------------------------
+:: -- 1. Git --------------------------------------------------------
 :: Skill dosyalari git ile indirilir; Claude Code da Windows'ta Git for
 :: Windows (Git Bash) ister.
 echo.
-echo  [2/8] Git kontrol ediliyor...
-where git >nul 2>&1
+echo  [1/7] Git kontrol ediliyor...
+call :GIT_CHECK
 if not errorlevel 1 goto GIT_OK
 echo  Git kuruluyor...
-choco install git -y --no-progress
-call :REFRESH_PATH
-where git >nul 2>&1
+call :INSTALL Git.Git git GIT_CHECK
 if errorlevel 1 (
   set "FAIL_MSG=Git kurulamadi."
   goto FAIL
@@ -90,15 +86,13 @@ if errorlevel 1 (
 :GIT_OK
 echo  Git hazir.
 
-:: -- 3. Node.js (18+) ----------------------------------------------
+:: -- 2. Node.js (18+) ----------------------------------------------
 echo.
-echo  [3/8] Node.js kontrol ediliyor...
+echo  [2/7] Node.js kontrol ediliyor...
 call :NODE_CHECK
 if not errorlevel 1 goto NODE_OK
 echo  Node.js kuruluyor / guncelleniyor...
-choco upgrade nodejs-lts -y --no-progress
-call :REFRESH_PATH
-call :NODE_CHECK
+call :INSTALL OpenJS.NodeJS.LTS nodejs-lts NODE_CHECK
 if errorlevel 1 (
   set "FAIL_MSG=Node.js 18 veya ustu kurulamadi."
   goto FAIL
@@ -106,18 +100,16 @@ if errorlevel 1 (
 :NODE_OK
 for /f "delims=" %%v in ('node --version') do echo  Node.js hazir ^(%%v^).
 
-:: -- 4. Python (3.10+) ---------------------------------------------
+:: -- 3. Python (3.10+) ---------------------------------------------
 :: "where python" yeterli degil: Windows 10/11'deki Microsoft Store
 :: kisayolu (WindowsApps\python.exe) Python kurulu olmasa da bulunur.
 echo.
-echo  [4/8] Python kontrol ediliyor...
+echo  [3/7] Python kontrol ediliyor...
 call :PY_CHECK
-if defined PY goto PY_OK
+if not errorlevel 1 goto PY_OK
 echo  Python kuruluyor...
-choco install python313 -y --no-progress
-call :REFRESH_PATH
-call :PY_CHECK
-if defined PY goto PY_OK
+call :INSTALL Python.Python.3.13 python313 PY_CHECK "--scope machine"
+if not errorlevel 1 goto PY_OK
 echo  [UYARI] Python kurulamadi. Word/Excel/PowerPoint dosyasi yukleme calismayabilir.
 goto PY_DONE
 :PY_OK
@@ -141,17 +133,13 @@ if errorlevel 1 (
 )
 :PY_DONE
 
-:: -- 5. Java (11+, PDF isleme icin) --------------------------------
-:: "java --version" yalnizca Java 9+ surumlerinde calisir; Java 8 varsa
-:: yenisi kurulur.
+:: -- 4. Java (11+, PDF isleme icin) --------------------------------
 echo.
-echo  [5/8] Java kontrol ediliyor...
-java --version >nul 2>&1
+echo  [4/7] Java kontrol ediliyor...
+call :JAVA_CHECK
 if not errorlevel 1 goto JAVA_OK
 echo  Java kuruluyor...
-choco install openjdk -y --no-progress
-call :REFRESH_PATH
-java --version >nul 2>&1
+call :INSTALL EclipseAdoptium.Temurin.21.JDK openjdk JAVA_CHECK
 if not errorlevel 1 goto JAVA_OK
 echo  [UYARI] Java kurulamadi. PDF yukleme calismayacak.
 goto JAVA_DONE
@@ -163,7 +151,7 @@ echo  Java hazir.
 :: Resmi Windows kurulumu claude.exe kurar (%USERPROFILE%\.local\bin).
 :: Olmazsa npm ile kurulur.
 echo.
-echo  [6/8] Claude Code kontrol ediliyor...
+echo  [5/7] Claude Code kontrol ediliyor...
 where claude >nul 2>&1
 if not errorlevel 1 goto CLAUDE_OK
 echo  Claude Code kuruluyor...
@@ -187,7 +175,7 @@ echo  Claude Code hazir.
 :: -- 7. Backend paketleri ------------------------------------------
 :: npm bir .cmd dosyasidir; CALL olmadan cagrilirsa bu betik orada biter.
 echo.
-echo  [7/8] Backend paketleri kuruluyor...
+echo  [6/7] Backend paketleri kuruluyor...
 pushd "%SCRIPT_DIR%backend"
 call npm install --no-fund --no-audit
 set "NPM_ERR=%ERRORLEVEL%"
@@ -200,7 +188,7 @@ echo  Paketler hazir.
 
 :: -- 8. Skill dosyalari --------------------------------------------
 echo.
-echo  [8/8] Akademik skill dosyalari indiriliyor...
+echo  [7/7] Akademik skill dosyalari indiriliyor...
 set "SKILLS_DIR=%SCRIPT_DIR%skills\academic-research-skills"
 if exist "%SKILLS_DIR%\.claude" (
   echo  Skills zaten mevcut.
@@ -277,19 +265,61 @@ exit /b 0
 ::  Yardimci alt programlar
 :: ================================================================
 
-:: PATH'i kayit defterinden yeniler (yeni kurulan programlar gorunsun) ve
-:: Chocolatey / Claude / npm klasorlerini ekler.
+:: PATH'i kayit defterinden (makine + kullanici) yeniden okur; boylece yeni
+:: kurulan programlar bu pencerede de gorunur. Chocolatey / Claude / npm
+:: klasorleri de eklenir.
 :REFRESH_PATH
-if exist "%CHOCO_BIN%\RefreshEnv.cmd" call "%CHOCO_BIN%\RefreshEnv.cmd" >nul 2>&1
-set "PATH=%PATH%;%CHOCO_BIN%;%CLAUDE_BIN%;%APPDATA%\npm"
+for /f "usebackq delims=" %%p in (`powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')"`) do set "PATH=%%p"
+set "PATH=%PATH%;%CHOCO_BIN%;%CLAUDE_BIN%;%APPDATA%\npm;%LOCALAPPDATA%\Microsoft\WindowsApps"
 exit /b 0
+
+:: Paket kurar: once winget, olmazsa Chocolatey.
+::   %1 = winget kimligi, %2 = Chocolatey paketi, %3 = kontrol alt programi,
+::   %4 = (istege bagli) ek winget secenekleri
+:: Kontrol basariliysa 0, degilse 1 doner. winget'in cikis koduna degil,
+:: programin gercekten calisip calismadigina bakilir.
+:INSTALL
+if defined USE_WINGET (
+  winget install --id %~1 -e --source winget --accept-source-agreements --accept-package-agreements --silent %~4
+  call :REFRESH_PATH
+  call :%~3
+  if not errorlevel 1 exit /b 0
+  echo  winget ile kurulamadi, Chocolatey deneniyor...
+)
+call :ENSURE_CHOCO
+if errorlevel 1 exit /b 1
+choco upgrade %~2 -y --no-progress
+call :REFRESH_PATH
+call :%~3
+exit /b %ERRORLEVEL%
+
+:: Chocolatey yoksa kurar.
+:ENSURE_CHOCO
+where choco >nul 2>&1
+if not errorlevel 1 exit /b 0
+if exist "%CHOCO_BIN%\choco.exe" exit /b 0
+echo  Chocolatey kuruluyor. Internet hiziniza gore birkac dakika surebilir,
+echo  ekran bu sirada hareketsiz gorunebilir; lutfen bekleyin.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+call :REFRESH_PATH
+where choco >nul 2>&1
+if errorlevel 1 (
+  echo  [HATA] Chocolatey kurulamadi.
+  exit /b 1
+)
+exit /b 0
+
+:: Git calisiyorsa 0 doner.
+:GIT_CHECK
+git --version >nul 2>&1
+exit /b %ERRORLEVEL%
 
 :: Node.js 18+ varsa 0, yoksa 1 doner.
 :NODE_CHECK
 node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 18 ? 0 : 1)" >nul 2>&1
 exit /b %ERRORLEVEL%
 
-:: Calisan bir Python 3.10+ bulursa PY degiskenini ayarlar.
+:: Calisan bir Python 3.10+ bulursa PY degiskenini ayarlar ve 0 doner.
 :PY_CHECK
 set "PY="
 python -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
@@ -298,8 +328,17 @@ if not errorlevel 1 (
   exit /b 0
 )
 py -3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
-if not errorlevel 1 set "PY=py -3"
-exit /b 0
+if not errorlevel 1 (
+  set "PY=py -3"
+  exit /b 0
+)
+exit /b 1
+
+:: Java 11+ varsa 0 doner. "java --version" yalnizca Java 9+ surumlerinde
+:: calisir; Java 8 varsa yenisi kurulur.
+:JAVA_CHECK
+java --version >nul 2>&1
+exit /b %ERRORLEVEL%
 
 :FAIL
 echo.

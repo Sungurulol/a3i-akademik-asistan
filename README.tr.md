@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![versiyon](https://img.shields.io/badge/versiyon-3.0.1-blue?style=flat-square)
+![versiyon](https://img.shields.io/badge/versiyon-3.0.2-blue?style=flat-square)
 ![lisans](https://img.shields.io/badge/lisans-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/Claude%20Code%20üzerine-kurulu-orange?style=flat-square)
@@ -89,7 +89,7 @@ Git kullanmıyorsanız GitHub'da **Code → Download ZIP** ile de indirebilirsin
 
 Kurulum otomatik olarak kurar:
 - **macOS:** Homebrew · Git · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code
-- **Windows:** Chocolatey · Git · Node.js · Python · MarkItDown · Java (OpenJDK) · Claude Code
+- **Windows:** Git · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code — Windows'ta hazır gelen **winget** ile (winget yoksa Chocolatey ile)
 
 > PDF ayrıştırıcısı Java 11+ gerektirir; kurulum bunu sizin için yapar, elle bir adım yok.
 
@@ -149,7 +149,7 @@ PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 | | macOS | Windows |
 |---|---|---|
 | İşletim Sistemi | macOS 12+ | Windows 10/11 |
-| Otomatik Kurulan | Homebrew, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code | Chocolatey, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code |
+| Otomatik Kurulan | Homebrew, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code | winget (yoksa Chocolatey), Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code |
 | PDF Çıktısı İçin | Google Chrome | Chrome veya Edge (Windows'ta hazır gelir) |
 | Hesap | Claude Pro / Max | Claude Pro / Max |
 
@@ -164,11 +164,19 @@ PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 | PDF yüklenmiyor | Java 11+ gerekir. Kurulumu yeniden çalıştırın ya da [adoptium.net](https://adoptium.net)'ten kurun. |
 | Word / Excel / PowerPoint yüklenmiyor | MarkItDown kurulamamış olabilir; kurulumu yeniden çalıştırın ve "MarkItDown" adımındaki uyarıya bakın. |
 | PDF çıktısı gelmiyor, yalnızca DOCX var | macOS'ta Google Chrome kurun. |
-| Windows'ta kurulum yönetici izni istiyor | Chocolatey için gereklidir; izni onaylayın. Kurulumu A³I'yı kullanacağınız hesapla yapın. |
+| Windows'ta kurulum yönetici izni istiyor | Programları kurmak için gereklidir; izni onaylayın. Kurulumu A³I'yı kullanacağınız hesapla yapın. |
+| Windows'ta kurulum bir adımda donmuş gibi duruyor | İndirme sürüyordur, bekleyin. Pencerenin içine tıkladıysanız kurulum durur; **Enter**'a basınca devam eder. |
 
 ---
 
 ## Sürüm Notları
+
+### v3.0.2
+
+**Windows kurulumu**
+- Programlar artık Windows 10/11'de hazır gelen **winget** ile kuruluyor; Chocolatey yalnızca winget yoksa ya da bir paketi kuramazsa devreye giriyor. Bazı ağlarda `community.chocolatey.org`'dan indirme takıldığı için kurulum ilk adımda donmuş gibi kalıyordu
+- Gerekli programların hepsi zaten kuruluysa paket yöneticisi hiç kurulmuyor
+- Pencereye tıklamanın kurulumu durdurduğu (QuickEdit) başta uyarılıyor
 
 ### v3.0.1
 
