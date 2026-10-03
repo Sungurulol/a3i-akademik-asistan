@@ -324,13 +324,15 @@ exit /b %ERRORLEVEL%
 :: Store / Python yukleyicisi kisayoludur: Python kurulu degilse ekranda
 :: gorunmeyen bir "kurulsun mu?" sorusuyla sonsuza kadar bekleyebilir. Bu
 :: yuzden atlanir; denenen her komutun girisi de bos (<nul) verilir.
+:: Python kurulu ama PATH'te degilse (yukleyicide "Add to PATH" isaretsiz)
+:: ya da Python install manager ile kurulduysa standart klasorlere bakilir.
 :PY_CHECK
 set "PY="
 for /f "delims=" %%i in ('where python 2^>nul') do if not defined PY call :PY_TRY "%%i" ""
 if defined PY exit /b 0
 for /f "delims=" %%i in ('where py 2^>nul') do if not defined PY call :PY_TRY "%%i" "-3"
 if defined PY exit /b 0
-for /d %%d in ("%ProgramFiles%\Python3*" "%LOCALAPPDATA%\Programs\Python\Python3*" "%SystemDrive%\Python3*") do if not defined PY if exist "%%~d\python.exe" call :PY_TRY "%%~d\python.exe" ""
+for /d %%d in ("%ProgramFiles%\Python3*" "%LOCALAPPDATA%\Programs\Python\Python3*" "%LOCALAPPDATA%\Python\pythoncore-3*" "%SystemDrive%\Python3*") do if not defined PY if exist "%%~d\python.exe" call :PY_TRY "%%~d\python.exe" ""
 if defined PY exit /b 0
 exit /b 1
 
