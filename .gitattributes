@@ -1,0 +1,6 @@
+# Windows batch dosyalari CRLF olmali; LF ile cmd.exe GOTO/etiket hatalari yapar.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+# macOS betikleri LF kalmali.
+*.command text eol=lf
+*.sh text eol=lf

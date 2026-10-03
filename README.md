@@ -68,14 +68,18 @@ Before starting a long task, A³I asks a few multiple-choice questions so the re
 ```bash
 # 1. Download the Windows/ folder
 # 2. Right-click kurulum.bat → Run as Administrator
+#    (double-clicking also works; it asks for admin rights itself)
 # 3. Follow the on-screen steps
 ```
+
+> If you see "Windows protected your PC", click **More info → Run anyway**.  
+> Run the setup from the Windows account you will use A³I with; Claude Code and its login are installed per user.
 
 > **Requirements:** A [Claude](https://claude.ai) account is required. Claude Pro or Max plan is recommended.
 
 The installer automatically sets up:
-- **macOS:** Homebrew · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code
-- **Windows:** Chocolatey · Node.js · Python · MarkItDown · Java (OpenJDK) · Claude Code
+- **macOS:** Homebrew · Git · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code
+- **Windows:** Chocolatey · Git · Node.js · Python · MarkItDown · Java (OpenJDK) · Claude Code
 
 > Java 11+ is required by the PDF parser and is installed for you — no manual step.
 
@@ -132,12 +136,21 @@ Generated files → downloads/ → Files pane in the sidebar
 | | macOS | Windows |
 |---|---|---|
 | OS | macOS 12+ | Windows 10/11 |
-| Auto-installed | Homebrew, Node.js, Python, MarkItDown, Java 11+, Claude Code | Chocolatey, Node.js, Python, MarkItDown, Java 11+, Claude Code |
+| Auto-installed | Homebrew, Git, Node.js, Python, MarkItDown, Java 11+, Claude Code | Chocolatey, Git, Node.js, Python, MarkItDown, Java 11+, Claude Code |
 | Account | Claude Pro / Max | Claude Pro / Max |
 
 ---
 
 ## Changelog
+
+### v3.0.1
+
+**Setup and launch fixes**
+- **Windows:** `npm`/`claude` calls aborted the scripts and the server could not start Claude (`.cmd` issue); Git was not installed and Chocolatey was not found right after installing it. Setup now elevates itself and installs Claude Code with the official Windows installer
+- **Windows:** skill links failed without admin rights (now junctions); PDF export never worked (falls back to Edge when Chrome is missing); `.bat` files are CRLF/ASCII
+- **macOS:** MarkItDown was never installed because Homebrew Python rejects `pip --user`; Python 3.10+, Node 18+ and Java versions are now verified, Claude Code uses the official installer
+- **Both:** MarkItDown is installed into an app-local `.venv`; garbled Turkish characters fixed (UTF-8 chunk boundaries, Python/Java code pages); removed the risk of deleting skill files when old sessions are cleaned up at startup
+- **Both:** launch only stops a previous A³I server (other programs on the port are left alone), reports when the server fails to start, and updates no longer corrupt the running script
 
 ### v3.0.0
 

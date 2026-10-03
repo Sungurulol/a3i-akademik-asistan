@@ -68,14 +68,18 @@ Uzun bir işe başlamadan önce A³I size birkaç şıklı soru sorar; böylece 
 ```bash
 # 1. Windows/ klasörünü indirin
 # 2. kurulum.bat dosyasına sağ tıklayın → Yönetici olarak çalıştır
+#    (çift tıklarsanız yönetici iznini kendisi ister)
 # 3. Ekrandaki adımları takip edin
 ```
+
+> "Windows bilgisayarınızı korudu" uyarısı çıkarsa **Ek bilgi → Yine de çalıştır** deyin.  
+> Kurulumu A³I'yı kullanacağınız Windows hesabıyla yapın; Claude Code ve oturum o hesaba kurulur.
 
 > **Gereksinim:** [Claude](https://claude.ai) hesabı gereklidir. Claude Pro veya Max planı önerilir.
 
 Kurulum otomatik olarak kurar:
-- **macOS:** Homebrew · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code
-- **Windows:** Chocolatey · Node.js · Python · MarkItDown · Java (OpenJDK) · Claude Code
+- **macOS:** Homebrew · Git · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code
+- **Windows:** Chocolatey · Git · Node.js · Python · MarkItDown · Java (OpenJDK) · Claude Code
 
 > PDF ayrıştırıcısı Java 11+ gerektirir; kurulum bunu sizin için yapar, elle bir adım yok.
 
@@ -132,12 +136,21 @@ DOCX / TXT / MD → MarkItDown ────────────────�
 | | macOS | Windows |
 |---|---|---|
 | İşletim Sistemi | macOS 12+ | Windows 10/11 |
-| Otomatik Kurulan | Homebrew, Node.js, Python, MarkItDown, Java 11+, Claude Code | Chocolatey, Node.js, Python, MarkItDown, Java 11+, Claude Code |
+| Otomatik Kurulan | Homebrew, Git, Node.js, Python, MarkItDown, Java 11+, Claude Code | Chocolatey, Git, Node.js, Python, MarkItDown, Java 11+, Claude Code |
 | Hesap | Claude Pro / Max | Claude Pro / Max |
 
 ---
 
 ## Sürüm Notları
+
+### v3.0.1
+
+**Kurulum ve başlatma düzeltmeleri**
+- **Windows:** `npm`/`claude` çağrıları betiği yarıda kesiyordu, sunucu Claude'u başlatamıyordu (`.cmd` sorunu); Git kurulmuyordu, Chocolatey kurulduktan sonra bulunamıyordu. Kurulum artık yönetici iznini kendisi istiyor, Claude Code'u resmi Windows kurulumuyla kuruyor
+- **Windows:** skill bağlantıları yönetici izni olmadan oluşmuyordu (artık junction); PDF dışa aktarma hiç çalışmıyordu (Chrome yoksa Edge kullanılıyor); `.bat` dosyaları CRLF/ASCII
+- **macOS:** Homebrew Python'u `pip --user`'ı reddettiği için MarkItDown hiç kurulmuyordu; Python 3.10+, Node 18+ ve Java sürümleri artık doğrulanıyor, Claude Code resmi kurulumla kuruluyor
+- **İki platform:** MarkItDown uygulamaya özel `.venv` içine kuruluyor; Türkçe karakterlerin bozulması (UTF-8 parça sınırı, Python/Java kod sayfası) giderildi; sunucu açılışta eski oturumları silerken skill dosyalarını silme riski kaldırıldı
+- **İki platform:** başlatırken yalnızca eski A³I sunucusu kapatılıyor (porttaki başka programa dokunulmuyor); sunucu açılamazsa hata gösteriliyor; güncelleme çalışan betiği bozmuyor
 
 ### v3.0.0
 

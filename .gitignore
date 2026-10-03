@@ -6,9 +6,15 @@ Windows/backend/node_modules/
 macOS/sessions/
 macOS/downloads/
 macOS/Chats/
+macOS/uploads/
 Windows/sessions/
 Windows/downloads/
 Windows/Chats/
+Windows/uploads/
+
+# Python sanal ortami (MarkItDown)
+macOS/.venv/
+Windows/.venv/
 
 # Skills — kurulum sırasında klonlanır
 macOS/skills/

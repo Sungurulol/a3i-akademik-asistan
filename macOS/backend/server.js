@@ -10,6 +10,76 @@ const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Borde
 const HTMLtoDOCX = require('./node_modules/html-to-docx');
 const { convert: convertPdf } = require('@opendataloader/pdf');
 const os = require('os');
+const { pathToFileURL } = require('url');
+
+const IS_WIN = process.platform === 'win32';
+
+// ── Claude Code çalıştırıcısı ──────────────────────────────────
+// Windows'ta npm ile kurulan claude bir .cmd betiğidir; Node .cmd dosyalarını
+// shell olmadan çalıştıramaz (ENOENT/EINVAL). shell:true ise uzun, çok satırlı
+// argümanları (system prompt) cmd.exe'nin tırnak kurallarıyla bozar. Bu yüzden
+// gerçek hedefi buluruz: native kurulumda claude.exe, npm kurulumunda .cmd'nin
+// işaret ettiği cli.js (node ile) ya da paketin içindeki .exe.
+function resolveClaude() {
+  if (!IS_WIN) {
+    // Resmi kurulum ~/.local/bin/claude'a kurar; o klasör PATH'te olmayabilir.
+    try {
+      require('child_process').execFileSync('which', ['claude'], { stdio: 'ignore' });
+      return { cmd: 'claude', pre: [] };
+    } catch {}
+    const local = path.join(os.homedir(), '.local', 'bin', 'claude');
+    return { cmd: fs.existsSync(local) ? local : 'claude', pre: [] };
+  }
+
+  const candidates = [path.join(os.homedir(), '.local', 'bin', 'claude.exe')];
+  try {
+    const out = require('child_process').execFileSync('where', ['claude'], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true,
+    });
+    candidates.push(...out.split(/\r?\n/).map(s => s.trim()).filter(Boolean));
+  } catch {}
+
+  const exe = candidates.find(c => /\.exe$/i.test(c) && fs.existsSync(c));
+  if (exe) return { cmd: exe, pre: [] };
+
+  for (const shim of candidates.filter(c => /\.cmd$/i.test(c) && fs.existsSync(c))) {
+    const dir = path.dirname(shim);
+    let target = null;
+    try {
+      // npm shim'inde "%dp0%\node.exe" de geçer; asıl hedef sondaki yoldur.
+      const hits = [...fs.readFileSync(shim, 'utf8').matchAll(/"%~?dp0%?\\([^"]+\.(?:js|exe))"/gi)]
+        .map(m => m[1]).filter(p => !/(^|\\)node\.exe$/i.test(p));
+      if (hits.length) target = path.join(dir, hits[hits.length - 1]);
+    } catch {}
+    if (!target || !fs.existsSync(target)) {
+      target = path.join(dir, 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
+    }
+    if (fs.existsSync(target)) {
+      return /\.exe$/i.test(target)
+        ? { cmd: target, pre: [] }
+        : { cmd: process.execPath, pre: [target] };
+    }
+  }
+  return { cmd: 'claude', pre: [] };
+}
+
+const CLAUDE = resolveClaude();
+console.log(`✓ Claude Code: ${[CLAUDE.cmd, ...CLAUDE.pre].join(' ')}`);
+
+// Çıktı UTF-8 olarak çözülür; Buffer parçaları tek tek toString() edilince
+// parça sınırına denk gelen Türkçe karakterler (ç, ş, ğ...) bozuluyor.
+function spawnClaude(args, opts = {}) {
+  const proc = spawn(CLAUDE.cmd, [...CLAUDE.pre, ...args], { windowsHide: true, ...opts });
+  if (proc.stdout) proc.stdout.setEncoding('utf8');
+  if (proc.stderr) proc.stderr.setEncoding('utf8');
+  return proc;
+}
+
+// Windows'ta Java 17 ve öncesi dosyaları sistem kod sayfasıyla (cp1254) yazar;
+// PDF'ten çıkan markdown UTF-8 okunduğu için Türkçe karakterler bozulmasın.
+if (IS_WIN && !process.env.JAVA_TOOL_OPTIONS) {
+  process.env.JAVA_TOOL_OPTIONS = '-Dfile.encoding=UTF-8';
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -49,11 +119,33 @@ const safeChatPath = (name, ...segments) => safePathIn(CHATS_DIR, name, ...segme
 // Claude Code oturum klasörü için güvenli mutlak yol.
 const safeSessionPath = (id) => safePathIn(SESSIONS_DIR, id);
 
+// Oturum/sunum klasörlerindeki .claude/skills/* asıl skill klasörüne
+// bağlantıdır (Windows'ta junction). Bazı Node sürümlerinde rmSync junction'ın
+// içine girip asıl skill dosyalarını silebiliyor; bu yüzden klasör silinmeden
+// önce bağlantılar tek tek kaldırılır (hedefe dokunulmaz).
+function unlinkSkills(dir) {
+  const skillsLink = path.join(dir, '.claude', 'skills');
+  let names = [];
+  try { names = fs.readdirSync(skillsLink); } catch { return; }
+  for (const name of names) {
+    const p = path.join(skillsLink, name);
+    try {
+      if (!fs.lstatSync(p).isSymbolicLink()) continue;
+      try { fs.unlinkSync(p); } catch { fs.rmdirSync(p); }
+    } catch {}
+  }
+}
+
+function removeWorkDir(dir) {
+  unlinkSkills(dir);
+  fs.rmSync(dir, { recursive: true, force: true });
+}
+
 // Startup'ta eski sessions temizle
 try {
   if (fs.existsSync(SESSIONS_DIR)) {
     fs.readdirSync(SESSIONS_DIR).forEach(dir => {
-      try { fs.rmSync(path.join(SESSIONS_DIR, dir), { recursive: true, force: true }); } catch {}
+      try { removeWorkDir(path.join(SESSIONS_DIR, dir)); } catch {}
     });
   }
 } catch {}
@@ -293,7 +385,10 @@ function linkSkills(targetDir) {
     const src = path.join(SKILLS_DIR, skill);
     const dst = path.join(skillsLink, skill);
     if (!fs.existsSync(dst) && fs.existsSync(src)) {
-      try { fs.symlinkSync(src, dst); } catch {}
+      // Windows'ta dizin symlink'i yönetici/Geliştirici Modu ister;
+      // junction istemez.
+      try { fs.symlinkSync(src, dst, IS_WIN ? 'junction' : 'dir'); }
+      catch (e) { console.error(`[skills] ${skill} bağlanamadı: ${e.message}`); }
     }
   }
 
@@ -414,7 +509,7 @@ Kurallar:
   console.log(`[${wsId}] Claude Code başlatılıyor — session: ${sessionId}${resumeSessionId ? ' (resume)' : ''}, mod: ${mode}, model: ${model || 'varsayılan'}, effort: ${effort || 'varsayılan'}`);
   console.log(`[${wsId}] Çalışma dizini: ${sessionDir}`);
 
-  const proc = spawn('claude', claudeArgs, {
+  const proc = spawnClaude(claudeArgs, {
     cwd: sessionDir,
     // Oturum klasörü backend/node_modules'ın altında değil; kurulu dosya üretme
     // kütüphaneleri ancak NODE_PATH ile require edilebilir. Bu olmadan Claude
@@ -595,12 +690,13 @@ app.post('/api/title', async (req, res) => {
   if (!text) return res.json({ title: 'Yeni Sohbet' });
   try {
     const prompt = `Aşağıdaki kullanıcı mesajı için 3-5 kelimelik kısa bir sohbet başlığı üret. Sadece başlığı yaz, başka hiçbir şey ekleme, nokta koyma:\n\n${text.slice(0, 200)}`;
-    const proc = spawn('claude', ['--print'], {
+    const proc = spawnClaude(['--print'], {
       env: { ...process.env },
-      cwd: process.env.HOME,
+      cwd: os.homedir(),
     });
     let out = '';
     proc.stdout.on('data', d => out += d.toString());
+    proc.stdin.on('error', () => {});
     proc.stdin.write(prompt, 'utf8');
     proc.stdin.end();
     proc.on('close', () => {
@@ -620,30 +716,72 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const upload = multer({ dest: UPLOADS_DIR, limits: { fileSize: 25 * 1024 * 1024 } });
 
-function findMarkitdown() {
-  const candidates = [
-    path.join(process.env.HOME || '', 'Library/Python/3.13/bin/markitdown'),
-    path.join(process.env.HOME || '', 'Library/Python/3.12/bin/markitdown'),
-    path.join(process.env.HOME || '', '.local/bin/markitdown'),
-    'markitdown',
-  ];
-  return candidates.find(p => p === 'markitdown' || fs.existsSync(p)) || 'markitdown';
+// markitdown'ı çalıştırmanın olası yolları, sırayla denenir. Kurulum onu
+// uygulamanın .venv klasörüne kurar; eski kurulumlar için `pip --user` yolları
+// (Windows'ta PATH'te olmayan %APPDATA%\Python\PythonXY\Scripts) ve
+// `python -m markitdown` da denenir.
+function markitdownCandidates() {
+  const home = os.homedir();
+  const list = [];
+  // Kurulumun oluşturduğu sanal ortam (kullanıcıdan/PATH'ten bağımsız).
+  const venvBin = IS_WIN
+    ? path.join(__dirname, '..', '.venv', 'Scripts', 'markitdown.exe')
+    : path.join(__dirname, '..', '.venv', 'bin', 'markitdown');
+  if (fs.existsSync(venvBin)) list.push({ cmd: venvBin, pre: [] });
+  if (IS_WIN) {
+    const userPy = path.join(process.env.APPDATA || path.join(home, 'AppData', 'Roaming'), 'Python');
+    try {
+      for (const d of fs.readdirSync(userPy).sort().reverse()) {
+        const exe = path.join(userPy, d, 'Scripts', 'markitdown.exe');
+        if (fs.existsSync(exe)) list.push({ cmd: exe, pre: [] });
+      }
+    } catch {}
+    list.push({ cmd: 'markitdown', pre: [] });
+    list.push({ cmd: 'python', pre: ['-m', 'markitdown'] });
+    list.push({ cmd: 'py', pre: ['-3', '-m', 'markitdown'] });
+  } else {
+    for (const p of [
+      path.join(home, 'Library/Python/3.13/bin/markitdown'),
+      path.join(home, 'Library/Python/3.12/bin/markitdown'),
+      path.join(home, '.local/bin/markitdown'),
+    ]) if (fs.existsSync(p)) list.push({ cmd: p, pre: [] });
+    list.push({ cmd: 'markitdown', pre: [] });
+    list.push({ cmd: 'python3', pre: ['-m', 'markitdown'] });
+  }
+  return list;
 }
 
-function runMarkitdown(filePath) {
+function runMarkitdownWith({ cmd, pre }, filePath) {
   return new Promise((resolve) => {
-    const bin = findMarkitdown();
-    const proc = spawn(bin, [filePath]);
-    let out = '', err = '';
+    let settled = false;
+    const done = v => { if (!settled) { settled = true; clearTimeout(t); resolve(v); } };
+    let proc;
+    try {
+      // Windows'ta Python, çıktıyı borudan sistem kod sayfasıyla (cp1254) yazar;
+      // Türkçe karakterler bozulmasın / UnicodeEncodeError olmasın diye UTF-8.
+      proc = spawn(cmd, [...pre, filePath], {
+        windowsHide: true,
+        env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' },
+      });
+    } catch { return resolve(null); }
+    proc.stdout.setEncoding('utf8');
+    let out = '';
     proc.stdout.on('data', d => out += d.toString());
-    proc.stderr.on('data', d => err += d.toString());
-    proc.on('close', (code) => {
-      if (code === 0 && out.trim()) resolve(out.trim());
-      else resolve(null);
-    });
-    proc.on('error', () => resolve(null));
-    setTimeout(() => { try { proc.kill(); } catch {} resolve(null); }, 30000);
+    proc.stderr.on('data', () => {});
+    proc.on('close', (code) => done(code === 0 && out.trim() ? out.trim() : null));
+    proc.on('error', () => done(null));
+    const t = setTimeout(() => { try { proc.kill(); } catch {} done(null); }, 30000);
   });
+}
+
+let markitdownWorking = null;   // ilk çalışan yol hatırlanır
+async function runMarkitdown(filePath) {
+  const list = markitdownWorking ? [markitdownWorking] : markitdownCandidates();
+  for (const c of list) {
+    const text = await runMarkitdownWith(c, filePath);
+    if (text) { markitdownWorking = c; return text; }
+  }
+  return null;
 }
 
 // PDF'leri opendataloader-pdf (Java tabanlı) ile markdown'a çevirir.
@@ -778,44 +916,65 @@ ${text.slice(0, 12000)}`;
     fs.writeFileSync(htmlPath, printHtml);
 
     let pdfCreated = false;
-    const { execSync } = require('child_process');
-    const chromePaths = [
+    const { execFileSync } = require('child_process');
+    const pdfOk = () => fs.existsSync(pdfPath) && fs.statSync(pdfPath).size > 1000;
+    // Komutlar shell olmadan (execFileSync) çalıştırılır: `2>/dev/null`, `which`
+    // gibi Unix'e özgü sözdizimi Windows'ta cmd.exe'de çalışmaz.
+    const quiet = { timeout: 30000, stdio: 'ignore', windowsHide: true };
+
+    const pf   = process.env.ProgramFiles || 'C:\\Program Files';
+    const pf86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+    const lad  = process.env.LOCALAPPDATA || '';
+    const chromePaths = (IS_WIN ? [
+      path.join(pf,   'Google', 'Chrome', 'Application', 'chrome.exe'),
+      path.join(pf86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      lad && path.join(lad, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      // Edge Windows 10/11'de her zaman kurulu; Chrome yoksa onunla yazdırılır.
+      path.join(pf86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      path.join(pf,   'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    ] : [
       '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       '/Applications/Chromium.app/Contents/MacOS/Chromium',
       '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
-      `${process.env.HOME}/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`,
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      process.env.LOCALAPPDATA ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe` : '',
-    ].filter(p => p && fs.existsSync(p));
+      path.join(os.homedir(), 'Applications/Google Chrome.app/Contents/MacOS/Google Chrome'),
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+    ]).filter(p => p && fs.existsSync(p));
 
-    // which komutu ile de dene
-    if (!chromePaths.length) {
-      try {
-        const found = execSync('which google-chrome 2>/dev/null || which chromium 2>/dev/null || which chromium-browser 2>/dev/null').toString().trim();
-        if (found && fs.existsSync(found)) chromePaths.push(found);
-      } catch {}
-    }
-    for (const chromePath of chromePaths) {
-      if (fs.existsSync(chromePath)) {
+    if (!chromePaths.length && !IS_WIN) {
+      for (const name of ['google-chrome', 'chromium', 'chromium-browser']) {
         try {
-          execSync(`"${chromePath}" --headless=new --disable-gpu --no-sandbox --print-to-pdf="${pdfPath}" --no-margins "file://${htmlPath}" 2>/dev/null`, { timeout: 30000 });
-          if (fs.existsSync(pdfPath) && fs.statSync(pdfPath).size > 1000) {
-            pdfCreated = true;
-            break;
-          }
-        } catch (e) {
-          console.log('Chrome PDF hatası:', e.message);
-        }
+          const found = execFileSync('which', [name], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+          if (found && fs.existsSync(found)) { chromePaths.push(found); break; }
+        } catch {}
       }
+    }
+
+    for (const chromePath of chromePaths) {
+      // Ayrı profil: kullanıcının açık tarayıcısına bağlanıp hemen çıkmasın.
+      const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'a3i-pdf-'));
+      try {
+        execFileSync(chromePath, [
+          '--headless=new', '--disable-gpu', '--no-sandbox', '--no-first-run',
+          `--user-data-dir=${profileDir}`,
+          `--print-to-pdf=${pdfPath}`, '--no-pdf-header-footer',
+          pathToFileURL(htmlPath).href,
+        ], quiet);
+      } catch (e) {
+        console.log('Chrome PDF hatası:', e.message);
+      } finally {
+        try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch {}
+      }
+      if (pdfOk()) { pdfCreated = true; break; }
     }
 
     // Pandoc fallback
     if (!pdfCreated) {
-      try {
-        execSync(`which pandoc && pandoc "${htmlPath}" -o "${pdfPath}" --pdf-engine=weasyprint 2>/dev/null || pandoc "${htmlPath}" -o "${pdfPath}" 2>/dev/null`, { timeout: 30000 });
-        if (fs.existsSync(pdfPath) && fs.statSync(pdfPath).size > 1000) pdfCreated = true;
-      } catch {}
+      for (const extra of [['--pdf-engine=weasyprint'], []]) {
+        try {
+          execFileSync('pandoc', [htmlPath, '-o', pdfPath, ...extra], quiet);
+          if (pdfOk()) { pdfCreated = true; break; }
+        } catch {}
+      }
     }
 
     // Cleanup HTML
@@ -881,14 +1040,16 @@ KURALLAR:
     console.error('[pptx] Hata:', e.message);
     res.status(500).json({ error: e.message });
   } finally {
-    try { fs.rmSync(workDir, { recursive: true, force: true }); } catch {}
+    try { removeWorkDir(workDir); } catch {}
   }
 });
 
 // Claude'u verilen klasörde tek seferlik çalıştırır (dosya üretimi için).
 function runClaudeIn(cwd, prompt, timeoutMs) {
   return new Promise((resolve, reject) => {
-    const proc = spawn('claude', ['--print', '--dangerously-skip-permissions', prompt], {
+    // Prompt argüman yerine stdin'den verilir: Windows'ta komut satırı ~32K
+    // karakterle sınırlı.
+    const proc = spawnClaude(['--print', '--dangerously-skip-permissions'], {
       cwd,
       // pptxgenjs backend/node_modules'ta; çalışma klasörü onun altında olmadığı
       // için require() ancak NODE_PATH ile çözülür.
@@ -898,6 +1059,8 @@ function runClaudeIn(cwd, prompt, timeoutMs) {
     let done = false;
     const finish = fn => (...a) => { if (!done) { done = true; clearTimeout(t); fn(...a); } };
 
+    proc.stdin.on('error', () => {});
+    proc.stdin.end(prompt, 'utf8');
     proc.stdout.on('data', d => out += d.toString());
     proc.stderr.on('data', d => err += d.toString());
     proc.on('close', finish(code => resolve({ code, out, err })));
@@ -1065,8 +1228,10 @@ function markdownToHtml(text) {
 
 function runClaude(prompt) {
   return new Promise((resolve) => {
-    const proc = spawn('claude', ['--print', prompt], { cwd: SKILLS_DIR, env: { ...process.env } });
+    const proc = spawnClaude(['--print'], { cwd: SKILLS_DIR, env: { ...process.env } });
     let out = '';
+    proc.stdin.on('error', () => {});
+    proc.stdin.end(prompt, 'utf8');
     proc.stdout.on('data', d => out += d.toString());
     proc.on('close', () => resolve(out.trim()));
     proc.on('error', () => resolve(''));
@@ -1259,7 +1424,7 @@ app.delete('/api/chats/:name', (req, res) => {
       const sessionId = fs.readFileSync(sessionIdFile, 'utf8').trim();
       const sessionPath = safeSessionPath(sessionId);
       if (sessionPath && fs.existsSync(sessionPath)) {
-        fs.rmSync(sessionPath, { recursive: true, force: true });
+        removeWorkDir(sessionPath);
         console.log(`[DELETE] Session silindi: ${sessionId}`);
       }
     }
