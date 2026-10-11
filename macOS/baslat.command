@@ -49,30 +49,91 @@ echo "  ╚═══════════════════════
 echo ""
 
 # ── A³I güncelleme kontrolü ──────────────────
+# Kullanıcı verileri (Chats, sessions, uploads, downloads) .gitignore'dadır;
+# buradaki adımlar yalnızca depodaki program dosyalarını değiştirir, sohbetlere
+# dokunmaz. `git clean` bilerek KULLANILMAZ.
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-if [ -d "$REPO_DIR/.git" ] && git --version &>/dev/null; then
-  info "A³I güncellemeleri kontrol ediliyor..."
-  OLD_COMMIT=$(git -C "$REPO_DIR" rev-parse HEAD 2>/dev/null)
-  git -C "$REPO_DIR" fetch --quiet 2>/dev/null
-  NEW_COMMIT=$(git -C "$REPO_DIR" rev-parse @{u} 2>/dev/null)
-  if [ -n "$OLD_COMMIT" ] && [ -n "$NEW_COMMIT" ] && [ "$OLD_COMMIT" != "$NEW_COMMIT" ]; then
-    info "Yeni güncelleme bulundu, indiriliyor..."
-    git -C "$REPO_DIR" pull --ff-only --quiet
-    if [ "$(git -C "$REPO_DIR" rev-parse HEAD 2>/dev/null)" = "$OLD_COMMIT" ]; then
-      warn "Güncelleme uygulanamadı (yerel değişiklikler olabilir). Mevcut sürümle devam ediliyor."
+REPO_URL="https://github.com/Sungurulol/a3i-akademik-asistan.git"
+G() { git -C "$REPO_DIR" "$@"; }
+
+update_a3i() {
+  local FORCE_SYNC="" DIRTY="" KUR=0 OLD_COMMIT NEW_COMMIT
+
+  # Güncellemeden sonra yeni sürüm bu değişkenle yeniden başlatılır.
+  [ -n "$A3I_GUNCELLENDI" ] && return 0
+  if ! git --version &>/dev/null; then
+    warn "Git bulunamadı, A³I güncellemesi atlandı"
+    return 0
+  fi
+  # Geliştirici kopyası: üzerinde çalışılan dosyalar ezilmesin.
+  if [ -e "$REPO_DIR/.a3i-gelistirici" ]; then
+    info "Geliştirici kopyası — otomatik güncelleme kapalı"
+    return 0
+  fi
+
+  if [ ! -e "$REPO_DIR/.git" ]; then
+    # ZIP ile indirilmiş kurulum: klasör yerinde bir git deposuna çevrilir,
+    # böylece o da güncelleme alır. Yanlış bir klasörü depoya çevirmemek için
+    # önce buranın gerçekten A³I klasörü olduğu doğrulanır.
+    [ -f "$REPO_DIR/README.tr.md" ] && [ -f "$REPO_DIR/macOS/baslat.command" ] \
+      && [ -f "$REPO_DIR/Windows/baslat.bat" ] || return 0
+    info "Otomatik güncelleme etkinleştiriliyor (ilk seferde biraz sürebilir)..."
+    if G init --quiet &>/dev/null \
+       && G symbolic-ref HEAD refs/heads/main \
+       && G remote add origin "$REPO_URL" \
+       && G fetch --quiet origin main &>/dev/null \
+       && G reset --quiet origin/main &>/dev/null; then
+      G branch --quiet --set-upstream-to=origin/main main &>/dev/null
+      FORCE_SYNC=1
     else
-      if git -C "$REPO_DIR" diff --name-only "$OLD_COMMIT" HEAD | grep -q "macOS/kurulum.command"; then
-        info "Kurulum güncellendi, yeniden kuruluyor..."
-        bash "$SCRIPT_DIR/kurulum.command"
-      fi
-      info "Bağımlılıklar güncelleniyor..."
-      (cd "$SCRIPT_DIR/backend" && npm install --silent --no-fund --no-audit)
-      ok "A³I güncellendi"
+      rm -rf "$REPO_DIR/.git"   # az önce oluşturuldu; sonraki açılışta yeniden denenir
+      warn "Otomatik güncelleme etkinleştirilemedi (internet bağlantısı?). Mevcut sürümle devam ediliyor."
+      return 0
     fi
   else
-    ok "A³I güncel"
+    info "A³I güncellemeleri kontrol ediliyor..."
+    if ! G fetch --quiet &>/dev/null; then
+      warn "Güncelleme kontrol edilemedi (internet bağlantısı?). Mevcut sürümle devam ediliyor."
+      return 0
+    fi
   fi
-fi
+
+  OLD_COMMIT=$(G rev-parse --verify -q HEAD 2>/dev/null)
+  NEW_COMMIT=$(G rev-parse --verify -q '@{u}' 2>/dev/null || G rev-parse --verify -q origin/main 2>/dev/null)
+  [ -n "$OLD_COMMIT" ] && [ -n "$NEW_COMMIT" ] || return 0
+  [ -n "$(G status --porcelain -uno 2>/dev/null)" ] && DIRTY=1
+
+  if [ -n "$FORCE_SYNC" ]; then
+    # ZIP'ten gelen dosyalar son sürümle aynıysa yapılacak iş yok.
+    if [ -z "$DIRTY" ]; then ok "A³I güncel"; return 0; fi
+  elif G merge-base --is-ancestor "$NEW_COMMIT" "$OLD_COMMIT" 2>/dev/null; then
+    ok "A³I güncel"
+    return 0
+  fi
+
+  info "Yeni güncelleme bulundu, indiriliyor..."
+  G diff --quiet "$NEW_COMMIT" -- macOS/kurulum.command &>/dev/null || KUR=1
+  # Elle değiştirilmiş dosyalar güncellemeyi engellemesin: değişiklikler
+  # git stash'e yedeklenir, sonra son sürüme geçilir.
+  G -c user.name=A3I -c user.email=a3i@localhost stash push --quiet &>/dev/null
+  G reset --hard --quiet "$NEW_COMMIT" &>/dev/null
+  if [ "$(G rev-parse HEAD 2>/dev/null)" != "$NEW_COMMIT" ]; then
+    warn "Güncelleme uygulanamadı. Mevcut sürümle devam ediliyor."
+    return 0
+  fi
+  [ -n "$DIRTY" ] && [ -z "$FORCE_SYNC" ] && warn "Yerel değişiklikler yedeklendi (git stash)"
+
+  if [ "$KUR" = 1 ]; then
+    info "Kurulum güncellendi, yeniden kuruluyor..."
+    bash "$SCRIPT_DIR/kurulum.command"
+  fi
+  info "Bağımlılıklar güncelleniyor..."
+  (cd "$SCRIPT_DIR/backend" && npm install --silent --no-fund --no-audit)
+  ok "A³I güncellendi"
+  # Başlatıcının kendisi de değişmiş olabilir; yeni sürümüyle devam et.
+  A3I_GUNCELLENDI=1 exec bash "$SCRIPT_DIR/baslat.command"
+}
+update_a3i
 
 # ── Skills güncelle ──────────────────────────
 SKILLS_DIR="$SCRIPT_DIR/skills/academic-research-skills"

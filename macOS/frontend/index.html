@@ -1103,8 +1103,9 @@ const ICONS = {
 };
 
 /* Modlar — hem karşılama kartlarını hem rıhtım çiplerini besleyen tek kaynak */
-/* kick: tuşa basınca gönderilen açılış mesajı. Claude sistem promptundaki
-   soru protokolü sayesinde önce seçenekli soruları sorup sonra işe başlar. */
+/* kick: tuşa basınca gönderilen açılış mesajı. Claude önce kullanıcının kendi
+   konusunu/fikrini düz metinle sorar (hazır konu önermez); ayrıntıları sonra
+   sistem promptundaki soru protokolüyle seçenekli pop-up'ta netleştirir. */
 const MODES = [
   { id:'arastirma', label:'Araştırma',    desc:'Sistematik literatür taraması ve sentez', icon:'search',
     kick:'Sistematik bir literatür taraması yapmanı istiyorum.' },
@@ -1231,7 +1232,7 @@ function renderChips(){
 }
 
 /* Hazır tuş: modu seçer VE açılış mesajını gönderir.
-   Kullanıcı bir şey yazmadan Claude seçenekli sorularını sorabilsin diye. */
+   Claude buna kullanıcının konusunu/fikrini sorarak karşılık verir. */
 function startMode(mode){
   if (isGenerating){ showToast('Önce mevcut yanıtın bitmesini bekleyin'); return; }
   const m = MODES.find(x => x.id === mode);

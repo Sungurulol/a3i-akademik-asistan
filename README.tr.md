@@ -61,7 +61,7 @@ Uzun bir işe başlamadan önce A³I size birkaç şıklı soru sorar; böylece 
 git clone https://github.com/Sungurulol/a3i-akademik-asistan.git
 ```
 
-Git kullanmıyorsanız GitHub'da **Code → Download ZIP** ile de indirebilirsiniz; bu durumda A³I kendini güncelleyemez, yeni sürüm için yeniden indirmeniz gerekir.
+Git kullanmıyorsanız GitHub'da **Code → Download ZIP** ile de indirebilirsiniz; A³I ilk başlatmada klasörü kendisi güncellenebilir hale getirir, yeniden indirmeniz gerekmez.
 
 ### macOS
 
@@ -106,7 +106,7 @@ baslat.bat dosyasına çift tıklayın
 ```
 
 Tarayıcı otomatik olarak `http://localhost:3000` adresinde açılır.  
-Her başlatmada A³I **kendini günceller** (`git clone` ile indirildiyse; değişiklik varsa kurulumu yeniden çalıştırır), akademik skill dosyalarını **otomatik günceller** ve Claude oturumunuzu **otomatik yeniler**.
+Her başlatmada A³I **kendini son sürüme günceller** (kurulum değiştiyse yeniden çalıştırır), akademik skill dosyalarını **otomatik günceller** ve Claude oturumunuzu **otomatik yeniler**. Güncelleme yalnızca program dosyalarını değiştirir; **sohbetleriniz ve ürettiğiniz dosyalar silinmez**.
 
 Durdurmak için pencereyi kapatın (macOS'ta `Ctrl+C` da olur).
 
@@ -170,6 +170,19 @@ PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 ---
 
 ## Sürüm Notları
+
+### v3.0.5
+
+**Genel akademik kullanım**
+- Asistan artık tek bir alana (spor bilimleri) göre düşünmüyor; alanı mesajınızdan ve yüklediğiniz dosyalardan çıkarıp soruları, şıkları ve raporlama standartlarını o disipline göre kuruyor
+- Hazır tuşlar (Araştırma, Makale yaz, Nitel Analiz, Hakem incele) artık hazır konu önermiyor; önce sizin konunuzu/fikrinizi soruyor, ayrıntıları sonra seçenekli pencerede netleştiriyor
+
+**Otomatik güncelleme**
+- ZIP ile indirilen kurulumlar da artık kendini güncelliyor (ilk başlatmada klasör yerinde güncellenebilir hale getirilir)
+- Elle değiştirilmiş bir dosya güncellemeyi artık kilitlemiyor: değişiklik `git stash`'e yedeklenip son sürüme geçiliyor
+- Güncelleme sohbetlere, oturumlara ve üretilen dosyalara dokunmuyor
+- macOS'ta güncellemeden sonra başlatıcının yeni sürümüyle devam ediliyor; internet yoksa uyarı verip mevcut sürümle açılıyor
+- Geliştirici kopyasında güncellemeyi kapatmak için depo köküne boş bir `.a3i-gelistirici` dosyası koymak yeterli
 
 ### v3.0.4
 

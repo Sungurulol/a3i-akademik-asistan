@@ -61,7 +61,7 @@ Before starting a long task, A³I asks a few multiple-choice questions so the re
 git clone https://github.com/Sungurulol/a3i-akademik-asistan.git
 ```
 
-Without Git you can use **Code → Download ZIP** on GitHub; A³I then can't update itself and you'll need to download new versions manually.
+Without Git you can use **Code → Download ZIP** on GitHub; on first launch A³I makes the folder updatable in place, so you never need to re-download.
 
 ### macOS
 
@@ -106,7 +106,7 @@ double-click baslat.bat
 ```
 
 The browser opens automatically at `http://localhost:3000`.  
-On every launch A³I **checks itself for updates** (when cloned with `git`), pulls them, re-runs the installer if it changed, **auto-updates the academic skill files** and **refreshes your Claude session**.
+On every launch A³I **updates itself to the latest version** (re-running the installer if it changed), **auto-updates the academic skill files** and **refreshes your Claude session**. Updates only replace program files; **your chats and generated files are never deleted**.
 
 To stop it, close the window (or press `Ctrl+C` on macOS).
 
@@ -170,6 +170,19 @@ PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 ---
 
 ## Changelog
+
+### v3.0.5
+
+**General academic use**
+- The assistant no longer assumes a single field (sports science); it infers the field from your message and uploaded files and shapes its questions, options and reporting standards to that discipline
+- The quick-start buttons (**Araştırma**, **Makale yaz**, **Nitel Analiz**, **Hakem incele**) no longer suggest ready-made topics; they first ask for your own topic/idea and clarify the details afterwards in the options pop-up
+
+**Auto-update**
+- ZIP installs now update themselves too (the folder is made updatable in place on first launch)
+- A hand-edited file no longer blocks updates: the change is saved to `git stash`, then the latest version is applied
+- Updates never touch chats, sessions or generated files
+- macOS continues with the new launcher right after updating; with no internet it warns and starts the current version
+- To switch updates off on a development copy, put an empty `.a3i-gelistirici` file in the repo root
 
 ### v3.0.4
 

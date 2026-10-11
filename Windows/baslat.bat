@@ -11,6 +11,7 @@ set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 set "PORT=3000"
 set "REPO_DIR=%SCRIPT_DIR%.."
+set "REPO_URL=https://github.com/Sungurulol/a3i-akademik-asistan.git"
 set "SKILLS_DIR=%SCRIPT_DIR%skills\academic-research-skills"
 
 :: Kurulumdan sonra pencere yeniden acilmadiysa bu klasorler PATH'te
@@ -58,44 +59,126 @@ if errorlevel 1 set "HAS_GIT="
 if /i "%~1"=="--guncellendi" goto POST_UPDATE
 
 :: -- A3I guncelleme kontrolu ---------------------------------------
-if not defined HAS_GIT goto SKILLS
-if not exist "%REPO_DIR%\.git" goto SKILLS
+:: Kullanici verileri (Chats, sessions, uploads, downloads) .gitignore'da
+:: oldugu icin buradaki adimlar yalnizca program dosyalarini degistirir,
+:: sohbetlere dokunmaz. "git clean" bilerek KULLANILMAZ.
+if not defined HAS_GIT (
+  echo  [UYARI] Git bulunamadi, A3I guncellemesi atlandi.
+  goto SKILLS
+)
+:: Gelistirici kopyasi: uzerinde calisilan dosyalar ezilmesin.
+if exist "%REPO_DIR%\.a3i-gelistirici" (
+  echo  Gelistirici kopyasi - otomatik guncelleme kapali.
+  goto SKILLS
+)
+set "FORCE_SYNC="
+if exist "%REPO_DIR%\.git" goto UPD_FETCH
 
+:: ZIP ile indirilmis kurulum: klasor yerinde bir git deposuna cevrilir,
+:: boylece o da guncelleme alir. Yanlis bir klasoru depoya cevirmemek icin
+:: once buranin gercekten A3I klasoru oldugu dogrulanir.
+if not exist "%REPO_DIR%\README.tr.md" goto SKILLS
+if not exist "%REPO_DIR%\Windows\baslat.bat" goto SKILLS
+if not exist "%REPO_DIR%\macOS\baslat.command" goto SKILLS
+echo  Otomatik guncelleme etkinlestiriliyor, ilk seferde biraz surebilir...
+git -C "%REPO_DIR%" init --quiet >nul 2>&1
+if errorlevel 1 goto BOOT_FAIL
+git -C "%REPO_DIR%" symbolic-ref HEAD refs/heads/main >nul 2>&1
+git -C "%REPO_DIR%" remote add origin "%REPO_URL%" >nul 2>&1
+git -C "%REPO_DIR%" fetch --quiet origin main >nul 2>&1
+if errorlevel 1 goto BOOT_FAIL
+git -C "%REPO_DIR%" reset --quiet origin/main >nul 2>&1
+if errorlevel 1 goto BOOT_FAIL
+git -C "%REPO_DIR%" branch --quiet --set-upstream-to=origin/main main >nul 2>&1
+set "FORCE_SYNC=1"
+goto UPD_COMPARE
+
+:BOOT_FAIL
+:: .git az once olusturuldu; sonraki acilista yeniden denenir.
+if exist "%REPO_DIR%\.git" rmdir /s /q "%REPO_DIR%\.git" 2>nul
+echo  [UYARI] Otomatik guncelleme etkinlestirilemedi. Internet baglantinizi kontrol edin.
+echo  Mevcut surumle devam ediliyor.
+goto SKILLS
+
+:UPD_FETCH
 echo  A3I guncellemeleri kontrol ediliyor...
+git -C "%REPO_DIR%" fetch --quiet >nul 2>&1
+if errorlevel 1 (
+  echo  [UYARI] Guncelleme kontrol edilemedi. Mevcut surumle devam ediliyor.
+  goto SKILLS
+)
+
+:UPD_COMPARE
 set "OLD_COMMIT="
 set "NEW_COMMIT="
-for /f "delims=" %%h in ('git -C "%REPO_DIR%" rev-parse HEAD 2^>nul') do set "OLD_COMMIT=%%h"
-git -C "%REPO_DIR%" fetch --quiet >nul 2>&1
-for /f "delims=" %%h in ('git -C "%REPO_DIR%" rev-parse @{u} 2^>nul') do set "NEW_COMMIT=%%h"
-
+for /f "delims=" %%h in ('git -C "%REPO_DIR%" rev-parse --verify -q HEAD 2^>nul') do set "OLD_COMMIT=%%h"
+for /f "delims=" %%h in ('git -C "%REPO_DIR%" rev-parse --verify -q @{u} 2^>nul') do set "NEW_COMMIT=%%h"
+if not defined NEW_COMMIT for /f "delims=" %%h in ('git -C "%REPO_DIR%" rev-parse --verify -q origin/main 2^>nul') do set "NEW_COMMIT=%%h"
 if not defined OLD_COMMIT goto SKILLS
 if not defined NEW_COMMIT goto SKILLS
-if "%OLD_COMMIT%"=="%NEW_COMMIT%" (
+set "DIRTY="
+for /f "delims=" %%s in ('git -C "%REPO_DIR%" status --porcelain -uno 2^>nul') do set "DIRTY=1"
+
+if not defined FORCE_SYNC goto UPD_ANCESTOR
+:: ZIP'ten gelen dosyalar son surumle ayniysa yapilacak is yok.
+if defined DIRTY goto UPD_APPLY
+echo  A3I guncel.
+goto SKILLS
+
+:UPD_ANCESTOR
+git -C "%REPO_DIR%" merge-base --is-ancestor %NEW_COMMIT% %OLD_COMMIT% >nul 2>&1
+if not errorlevel 1 (
   echo  A3I guncel.
   goto SKILLS
 )
 
+:UPD_APPLY
 echo  Yeni guncelleme bulundu, indiriliyor...
-:: git pull bu dosyanin kendisini de degistirebilir. cmd calisan batch
+set "KUR=0"
+git -C "%REPO_DIR%" diff --quiet %NEW_COMMIT% -- Windows/kurulum.bat >nul 2>&1
+if errorlevel 1 set "KUR=1"
+if defined DIRTY if not defined FORCE_SYNC echo  [UYARI] Yerel degisiklikler yedeklendi: git stash
+:: Elle degistirilmis dosyalar guncellemeyi engellemesin: degisiklikler
+:: git stash'e yedeklenir, sonra son surume gecilir.
+:: Bu adimlar bu dosyanin kendisini de degistirebilir. cmd calisan batch
 :: dosyasini satir satir okudugu icin degisen dosyadan okumaya devam etmek
-:: bozuk komutlar calistirir. Bu yuzden pull ve yeniden baslatma tek bir
+:: bozuk komutlar calistirir. Bu yuzden hepsi ve yeniden baslatma tek bir
 :: parantez blogunda (onceden okunmus) yapilir ve yeni surume gecilir.
 (
-  git -C "%REPO_DIR%" pull --ff-only --quiet
-  "%~f0" --guncellendi %OLD_COMMIT%
+  git -C "%REPO_DIR%" -c user.name=A3I -c user.email=a3i@localhost stash push --quiet >nul 2>&1
+  git -C "%REPO_DIR%" reset --hard --quiet %NEW_COMMIT% >nul 2>&1
+  "%~f0" --guncellendi %NEW_COMMIT% %KUR%
 )
 
 :POST_UPDATE
+:: Arguman bicimi: --guncellendi YENI_COMMIT KUR
+:: v3.0.4 ve oncesi baslaticilar yalnizca ESKI_COMMIT verir; o durumda
+:: guncellemeyi eski baslatici yapmistir (POST_LEGACY).
+if "%~3"=="" goto POST_LEGACY
+set "NEW_COMMIT=%~2"
+set "KUR=%~3"
+set "CUR_COMMIT="
+for /f "delims=" %%h in ('git -C "%REPO_DIR%" rev-parse HEAD 2^>nul') do set "CUR_COMMIT=%%h"
+if not "%CUR_COMMIT%"=="%NEW_COMMIT%" (
+  echo  [UYARI] Guncelleme uygulanamadi. Mevcut surumle devam ediliyor.
+  goto SKILLS
+)
+goto POST_DEPS
+
+:POST_LEGACY
 set "OLD_COMMIT=%~2"
 set "CUR_COMMIT="
 for /f "delims=" %%h in ('git -C "%REPO_DIR%" rev-parse HEAD 2^>nul') do set "CUR_COMMIT=%%h"
 if "%CUR_COMMIT%"=="%OLD_COMMIT%" (
-  echo  [UYARI] Guncelleme uygulanamadi ^(yerel degisiklikler olabilir^). Mevcut surumle devam ediliyor.
+  echo  [UYARI] Guncelleme uygulanamadi. Mevcut surumle devam ediliyor.
   goto SKILLS
 )
-set "KURULUM_CHANGED="
-if defined OLD_COMMIT for /f "delims=" %%f in ('git -C "%REPO_DIR%" diff --name-only %OLD_COMMIT% HEAD 2^>nul ^| findstr /i /c:"Windows/kurulum.bat"') do set "KURULUM_CHANGED=1"
-if defined KURULUM_CHANGED (
+set "KUR=0"
+if defined OLD_COMMIT git -C "%REPO_DIR%" diff --quiet %OLD_COMMIT% HEAD -- Windows/kurulum.bat >nul 2>&1
+if errorlevel 1 set "KUR=1"
+
+:POST_DEPS
+if "%KUR%"=="1" (
   echo  Kurulum guncellendi, yeniden kuruluyor...
   call "%SCRIPT_DIR%kurulum.bat"
 )

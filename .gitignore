@@ -31,3 +31,6 @@ npm-debug.log*
 # Ortam
 .env
 .env.local
+
+# Gelistirici kopyasi isareti: varsa baslatici otomatik guncelleme yapmaz
+.a3i-gelistirici
