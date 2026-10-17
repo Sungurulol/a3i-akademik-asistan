@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![versiyon](https://img.shields.io/badge/versiyon-3.0.7-blue?style=flat-square)
+![versiyon](https://img.shields.io/badge/versiyon-3.0.8-blue?style=flat-square)
 ![lisans](https://img.shields.io/badge/lisans-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/Claude%20Code%20üzerine-kurulu-orange?style=flat-square)
@@ -172,6 +172,13 @@ PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 ---
 
 ## Sürüm Notları
+
+### v3.0.8
+
+**PDF okuma**
+- Sağlam olduğu halde "bozuk" denen PDF'ler artık okunuyor. opendataloader-pdf katı bir ayrıştırıcı: tek bir alışılmadık nesne yüzünden bütün dosyayı reddedebiliyor (ör. 222 sayfalık *The Urban Revolution*). Bu durumda ya da metin çıkmazsa PDF, MarkItDown'ın daha hoşgörülü okuyucusuyla yeniden deneniyor
+- Yüzlerce sayfalık kitaplar için okuma süresi sınırı 30 saniyeden 3 dakikaya çıkarıldı
+- MarkItDown kurulu değilse hata mesajı bunu söylüyor ("kurulumu yeniden çalıştırın")
 
 ### v3.0.7
 

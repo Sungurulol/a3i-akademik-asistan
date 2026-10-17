@@ -886,8 +886,15 @@ function runMarkitdownWith({ cmd, pre }, filePath) {
     proc.stderr.on('data', () => {});
     proc.on('close', (code) => done(code === 0 && out.trim() ? out.trim() : null));
     proc.on('error', () => done(null));
-    const t = setTimeout(() => { try { proc.kill(); } catch {} done(null); }, 30000);
+    // Yüzlerce sayfalık kitaplar 30 saniyeyi aşabiliyor.
+    const t = setTimeout(() => { try { proc.kill(); } catch {} done(null); }, 180000);
   });
+}
+
+// MarkItDown'ın kurulu olduğu biliniyor mu: daha önce çalıştı ya da kurulumun
+// yazdığı bir program dosyası var (PATH'teki "markitdown"/"python -m" hariç).
+function markitdownInstalled() {
+  return !!markitdownWorking || markitdownCandidates().some(c => path.isAbsolute(c.cmd));
 }
 
 let markitdownWorking = null;   // ilk çalışan yol hatırlanır
@@ -937,16 +944,28 @@ app.post('/api/upload', receiveUpload, async (req, res) => {
   try {
     let text = null;
     if (isPdf) {
+      // Önce opendataloader-pdf (başlık/tablo yapısını daha iyi çıkarır). Katı
+      // bir ayrıştırıcı: tek bir tuhaf nesne yüzünden bütün dosyayı
+      // reddedebiliyor ("Error while parsing object"), oysa PDF sağlam. O
+      // zaman MarkItDown'ın daha hoşgörülü PDF okuyucusu (pdfminer) denenir.
+      let odlError = null;
       try {
         text = await runOpenDataLoaderPdf(tmpPath);
       } catch (e) {
+        odlError = e;
         console.error('[opendataloader-pdf] Hata:', e.message);
-        if (!javaAvailable()) return fail(500, 'PDF işlenemedi: Java 11+ kurulu olmalı (https://adoptium.net)');
-        // Java var: sorun dosyanın kendisinde (ayrıntı yukarıda günlükte).
-        return fail(500, 'PDF işlenemedi: dosya bozuk ya da parola korumalı olabilir.');
       }
-      // Dönüştürme çalıştı ama metin yok: taranmış (görüntü) PDF.
-      if (!text) return fail(422, "PDF'ten metin çıkarılamadı. Taranmış (görüntü) bir PDF olabilir; metni seçilebilen bir PDF yükleyin.");
+      if (!text) {
+        console.log(`[upload] ${originalname}: MarkItDown ile deneniyor`);
+        text = await runMarkitdown(tmpPath);
+      }
+      if (!text) {
+        if (odlError && !javaAvailable()) return fail(500, 'PDF işlenemedi: Java 11+ kurulu olmalı (https://adoptium.net)');
+        if (odlError && !markitdownInstalled()) return fail(500, 'PDF işlenemedi. Yedek PDF okuyucusu (MarkItDown) kurulu değil; kurulumu yeniden çalıştırın.');
+        if (odlError) return fail(500, 'PDF işlenemedi: dosya bozuk ya da parola korumalı olabilir.');
+        // İki okuyucu da çalıştı ama metin yok: taranmış (görüntü) PDF.
+        return fail(422, "PDF'ten metin çıkarılamadı. Taranmış (görüntü) bir PDF olabilir; metni seçilebilen bir PDF yükleyin.");
+      }
     } else {
       text = await runMarkitdown(tmpPath);
       // Ham okuma yalnızca düz metin dosyaları için; DOCX/PPTX/XLSX'i UTF-8

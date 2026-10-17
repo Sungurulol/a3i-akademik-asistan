@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-3.0.7-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-3.0.8-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -172,6 +172,13 @@ PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 ---
 
 ## Changelog
+
+### v3.0.8
+
+**PDF reading**
+- Valid PDFs reported as "corrupt" are now read. opendataloader-pdf is a strict parser and can reject a whole file over a single unusual object (e.g. the 222-page *The Urban Revolution*). In that case, or when it extracts no text, the PDF is retried with MarkItDown's more lenient reader
+- Read timeout raised from 30 seconds to 3 minutes for books with hundreds of pages
+- If MarkItDown is missing, the error says so ("re-run setup")
 
 ### v3.0.7
 
