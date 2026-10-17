@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![versiyon](https://img.shields.io/badge/versiyon-3.0.5-blue?style=flat-square)
+![versiyon](https://img.shields.io/badge/versiyon-3.0.6-blue?style=flat-square)
 ![lisans](https://img.shields.io/badge/lisans-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/Claude%20Code%20üzerine-kurulu-orange?style=flat-square)
@@ -45,7 +45,7 @@ Uzun bir işe başlamadan önce A³I size birkaç şıklı soru sorar; böylece 
 | 🧠 | **Model ve Çaba Kontrolü** | Opus 5 / Sonnet 5 / Haiku 4.5 ve düşünme çabası sohbet ortasında değiştirilebilir; oturum devam ettiği için bağlam korunur |
 | 📄 | **DOCX · PDF · PPTX Çıktısı** | LaTeX kalitesinde akademik format, içeriğe dokunulmadan — ve her mesaj sunuma çevrilebilir |
 | 📁 | **Dosyalar Bölümü** | Asistanın ürettiği her dosya saklanır ve kenar çubuğundan indirilir, türüne göre renklenir |
-| 📎 | **Akıllı Dosya İşleme** | PDF'ler [opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf) ile ayrıştırılır (kıyaslamalarda 1. sırada); DOCX/TXT/MD için MarkItDown. Sürükle-bırak destekli |
+| 📎 | **Akıllı Dosya İşleme** | PDF'ler [opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf) ile ayrıştırılır (kıyaslamalarda 1. sırada); DOCX/PPTX/XLSX/CSV/TXT/MD için MarkItDown. Dosya başına 200 MB'a kadar; kitap gibi uzun belgelerin tamamı Claude'a açılır. Sürükle-bırak destekli |
 | 💬 | **Canlı Streaming** | Token'lar üretilirken görünür; durum göstergesi yüzer, sayfayı hiç kaydırmaz |
 | 💾 | **Yerel Bellek** | Sohbetler `Chats/` klasörüne kaydedilir; sabitleme ve başlık + mesaj içeriğinde arama |
 | 🌗 | **Açık ve Karanlık Tema** | Apple tasarım diliyle kurulmuş, yay fizikli hareketleri olan uyarlanabilir arayüz |
@@ -162,6 +162,8 @@ PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 | "Kurulum bulunamadı" / "Claude Code bulunamadı" | Önce `kurulum.command` / `kurulum.bat` çalıştırın. Kurulumdan hemen sonraysa pencereyi kapatıp yeniden açın. |
 | "3000 portu başka bir program tarafından kullanılıyor" | 3000 portunu kullanan programı (ör. başka bir geliştirme sunucusu) kapatın. A³I yalnızca kendi eski sunucusunu kapatır. |
 | PDF yüklenmiyor | Java 11+ gerekir. Kurulumu yeniden çalıştırın ya da [adoptium.net](https://adoptium.net)'ten kurun. |
+| "PDF'ten metin çıkarılamadı" | PDF taranmış (görüntü) olabilir; metni seçilebilen bir PDF yükleyin ya da önce OCR'dan geçirin. |
+| "Dosya çok büyük" | Dosya başına sınır 200 MB. Büyük PDF'leri bölerek yükleyin. |
 | Word / Excel / PowerPoint yüklenmiyor | MarkItDown kurulamamış olabilir; kurulumu yeniden çalıştırın ve "MarkItDown" adımındaki uyarıya bakın. |
 | PDF çıktısı gelmiyor, yalnızca DOCX var | macOS'ta Google Chrome kurun. |
 | Windows'ta kurulum yönetici izni istiyor | Programları kurmak için gereklidir; izni onaylayın. Kurulumu A³I'yı kullanacağınız hesapla yapın. |
@@ -170,6 +172,19 @@ PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 ---
 
 ## Sürüm Notları
+
+### v3.0.6
+
+**Dosya yükleme**
+- Yükleme sınırı 25 MB'tan **200 MB**'a çıkarıldı; kitaplar ve tezler yüklenebiliyor
+- Bir dosya yüklenemezse mesaj artık gönderilmiyor ve nedeni gösteriliyor (ör. "Dosya çok büyük"). Önceden hata sessizce mesajın içine gömülüyordu; asistan dosyayı bulamayınca bilgisayardaki klasörlerde arıyordu
+- Uzun belgelerin **tamamı** okunabiliyor: başı mesaja eklenir, tam metin bir dosyaya yazılır ve asistan gereken bölümleri oradan okur (önceden yalnızca ilk 12.000 karakter görülüyordu)
+- Asistan, ulaşmayan bir ek için kullanıcının klasörlerinde arama yapmıyor; yeniden yüklenmesini istiyor
+- Taranmış PDF'lerde yanıltıcı "Java kurulu olmalı" yerine doğru hata gösteriliyor; bozuk DOCX/PPTX/XLSX anlamsız karakter olarak eklenmiyor
+- PPTX, XLSX ve CSV yüklemesi eklendi (desteklenmeyen eski .doc çıkarıldı)
+
+**DOCX/PDF dışa aktarma**
+- 12.000 karakterden uzun metinlerin dışa aktarılırken sonunun kesilmesi düzeltildi
 
 ### v3.0.5
 

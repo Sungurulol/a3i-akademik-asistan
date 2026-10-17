@@ -873,7 +873,7 @@ button{background:none;border:none;cursor:pointer}
         <div class="chips" id="chips"></div>
         <div class="files" id="files"></div>
         <div class="composer">
-          <input type="file" id="file-input" multiple accept=".pdf,.doc,.docx,.txt,.md" style="display:none">
+          <input type="file" id="file-input" multiple accept=".pdf,.docx,.pptx,.xlsx,.csv,.txt,.md" style="display:none">
           <div class="composer-row">
             <button class="icon-btn" id="attach-btn" title="Dosya ekle">
               <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -1581,17 +1581,21 @@ document.getElementById('scrim').addEventListener('click', () => {
 /* ═══════════════════════════════════════════════════════════
    13 — DOSYA EKLERİ
    ═══════════════════════════════════════════════════════════ */
-const OK_EXT = ['.pdf','.doc','.docx','.txt','.md'];
+const OK_EXT = ['.pdf','.docx','.pptx','.xlsx','.csv','.txt','.md'];
+const MAX_UPLOAD_MB = 200;   // server.js'deki MAX_UPLOAD_MB ile aynı olmalı
 function addFiles(files){
   let skipped = 0;
+  const tooBig = [];
   for (const f of files){
     const ok = OK_EXT.some(x => f.name.toLowerCase().endsWith(x));
     if (!ok){ skipped++; continue; }
+    if (f.size > MAX_UPLOAD_MB * 1024 * 1024){ tooBig.push(f.name); continue; }
     if (attachedFiles.find(a => a.name === f.name && a.size === f.size)) continue;
     attachedFiles.push(f);
   }
   renderFiles();
-  if (skipped) showToast(`${skipped} dosya desteklenmiyor (PDF, DOCX, TXT, MD)`);
+  if (tooBig.length) showToast(`${tooBig.join(', ')}: dosya çok büyük (en fazla ${MAX_UPLOAD_MB} MB)`);
+  else if (skipped) showToast(`${skipped} dosya desteklenmiyor (PDF, DOCX, PPTX, XLSX, CSV, TXT, MD)`);
 }
 function renderFiles(){
   const el = document.getElementById('files');
@@ -1605,14 +1609,27 @@ function renderFiles(){
     attachedFiles.splice(+b.dataset.i, 1); renderFiles();
   }));
 }
+/* Dosyayı yükler; { ok, data } ya da { ok:false, error } döner. Sunucu JSON
+   yerine bir hata sayfası döndürse bile anlaşılır bir mesaj üretilir. */
 async function uploadFile(file){
   try {
     const fd = new FormData(); fd.append('file', file);
     const res = await fetch('/api/upload', { method:'POST', body:fd });
-    const data = await res.json();
-    if (data.error) return `[Dosya işlenemedi: ${data.error}]`;
-    return data.content;
-  } catch (e){ return `[Dosya yüklenemedi: ${e.message}]`; }
+    let data = null;
+    try { data = await res.json(); } catch {}
+    if (!data) return { ok:false, error: res.status === 413 ? 'dosya çok büyük' : `sunucu hatası (${res.status})` };
+    if (!res.ok || data.error) return { ok:false, error: data.error || `sunucu hatası (${res.status})` };
+    return { ok:true, data };
+  } catch (e){ return { ok:false, error: e.message }; }
+}
+
+/* Yüklenen dosyanın mesaja eklenecek bölümü. Uzun belgelerde başı gömülür,
+   tamamı sunucunun yazdığı dosyadadır; Claude gereken bölümleri oradan okur. */
+function filePart(name, d){
+  if (!d.truncated) return `\n\n--- Eklenen Dosya: ${name} ---\n${d.content}`;
+  const fmt = n => Number(n).toLocaleString('tr-TR');
+  return `\n\n--- Eklenen Dosya: ${name} (ilk ${fmt(d.content.length)} / ${fmt(d.totalChars)} karakter) ---\n${d.content}`
+       + `\n\n[Belgenin tamamı burada gösterilemeyecek kadar uzun. Tam metin şu dosyada: ${d.fullTextPath} — gereken bölümleri oradan oku.]`;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2398,9 +2415,17 @@ async function sendMessage(){
     setConn('busy', 'Dosyalar işleniyor');
     const parts = [];
     for (const f of attachedFiles){
-      const content = await uploadFile(f);
-      parts.push(`\n\n--- Eklenen Dosya: ${f.name} ---\n${content}`);
+      const r = await uploadFile(f);
+      // Bir dosya yüklenemezse mesaj gönderilmez: kullanıcı nedenini görür,
+      // Claude da olmayan dosyayı aramaya kalkmaz. Metin ve ekler korunur.
+      if (!r.ok){
+        setConn('active', 'Hazır');
+        showToast(`${f.name} yüklenemedi: ${r.error}`);
+        return;
+      }
+      parts.push(filePart(f.name, r.data));
     }
+    setConn('active', 'Hazır');
     fullText = text + parts.join('');
     attachedFiles = [];
     renderFiles();

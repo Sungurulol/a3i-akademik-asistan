@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-3.0.5-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-3.0.6-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -45,7 +45,7 @@ Before starting a long task, A³I asks a few multiple-choice questions so the re
 | 🧠 | **Model & Effort Control** | Switch between Opus 5 / Sonnet 5 / Haiku 4.5 and thinking effort mid-conversation; the session is resumed, so context is kept |
 | 📄 | **DOCX · PDF · PPTX Export** | LaTeX-quality academic formatting, content untouched — and any message can be turned into a slide deck |
 | 📁 | **Files Pane** | Every file the assistant produces is kept and downloadable from the sidebar, colour-coded by type |
-| 📎 | **Smart File Processing** | PDFs are parsed by [opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf) (#1 in extraction benchmarks); DOCX/TXT/MD via MarkItDown. Drag & drop supported |
+| 📎 | **Smart File Processing** | PDFs are parsed by [opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf) (#1 in extraction benchmarks); DOCX/PPTX/XLSX/CSV/TXT/MD via MarkItDown. Up to 200 MB per file; long documents such as books are fully available to Claude. Drag & drop supported |
 | 💬 | **Live Streaming** | Real-time token streaming with a floating activity indicator that never shifts the page |
 | 💾 | **Local Memory** | Conversations saved to `Chats/`, with pinning and full-text search across titles and messages |
 | 🌗 | **Light & Dark Theme** | Adaptive interface built on Apple's design language, with spring-based motion |
@@ -162,6 +162,8 @@ PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 | "Kurulum bulunamadı" / "Claude Code bulunamadı" (setup / Claude Code not found) | Run `kurulum.command` / `kurulum.bat` first. If you just installed, close and reopen the window. |
 | Port 3000 is used by another program | Close the program using port 3000 (e.g. another dev server). A³I only stops its own previous server. |
 | PDFs won't upload | Java 11+ is required. Re-run setup or install it from [adoptium.net](https://adoptium.net). |
+| "PDF'ten metin çıkarılamadı" (no text in PDF) | The PDF is probably scanned (images only); upload a PDF with selectable text or run OCR first. |
+| "Dosya çok büyük" (file too large) | The limit is 200 MB per file. Split large PDFs before uploading. |
 | Word / Excel / PowerPoint files won't upload | MarkItDown may have failed to install; re-run setup and check the warning in the MarkItDown step. |
 | Only DOCX is produced, no PDF | Install Google Chrome on macOS. |
 | Windows setup asks for admin rights | Needed to install programs; approve the prompt. Run setup from the account you'll use A³I with. |
@@ -170,6 +172,19 @@ PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 ---
 
 ## Changelog
+
+### v3.0.6
+
+**File uploads**
+- Upload limit raised from 25 MB to **200 MB**, so books and theses can be uploaded
+- If a file fails to upload, the message is no longer sent and the reason is shown (e.g. "file too large"). Previously the error was silently embedded in the message and the assistant went searching the computer's folders for the missing file
+- Long documents are now **fully** readable: the beginning is embedded in the message, the full text is written to a file and the assistant reads the parts it needs (previously only the first 12,000 characters were seen)
+- The assistant no longer searches the user's folders for an attachment that didn't arrive; it asks for a re-upload
+- Scanned PDFs get an accurate error instead of the misleading "Java required"; corrupt DOCX/PPTX/XLSX files are no longer attached as garbage text
+- Added PPTX, XLSX and CSV uploads (removed the unsupported legacy .doc)
+
+**DOCX/PDF export**
+- Fixed texts longer than 12,000 characters being cut off on export
 
 ### v3.0.5
 

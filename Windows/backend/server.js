@@ -120,7 +120,9 @@ app.use((req, res, next) => {
 // ediliyor, dolayısıyla cross-origin izni gerekmiyor. Kısıtsız bir cors(),
 // kullanıcının ziyaret ettiği herhangi bir sitenin localhost:3000'deki
 // API'ye istek atmasına (drive-by CSRF) izin verirdi.
-app.use(express.json());
+// Varsayılan 100 KB sınırı uzun yanıtları (DOCX/PPTX'e dönüştürülen metin)
+// reddediyordu; sunucu yalnızca bu bilgisayardan erişilebilir.
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 const SKILLS_DIR = path.join(__dirname, '../skills/academic-research-skills');
@@ -482,6 +484,14 @@ Kurulu kütüphaneler (NODE_PATH ayarlı, doğrudan require edilir):
 PDF için: Chrome headless ile HTML'den üretilebilir.
 npm install ETME; bu kütüphaneler zaten kurulu. Gerekmedikçe dosya üretme.
 
+EKLENEN DOSYALAR
+Kullanıcının yüklediği dosyalar mesajın içinde "--- Eklenen Dosya: ... ---"
+başlığıyla gelir. Uzun belgelerde yalnızca baş kısım mesajdadır; tamamı
+belirtilen dosya yolundadır, gereken bölümleri oradan oku.
+Kullanıcı bir dosyadan bahsediyor ama mesajda yoksa ya da "[Dosya ...
+yüklenemedi]" notu varsa kullanıcının bilgisayarında (Masaüstü, İndirilenler,
+Belgeler…) dosya ARAMA; dosyanın ulaşmadığını söyle ve yeniden yüklemesini iste.
+
 ÖNCE KULLANICININ FİKRİ
 Kullanıcı konusunu/fikrini henüz söylemediyse (ör. yalnızca "makale yazmanı
 istiyorum", "literatür taraması yapmanı istiyorum" dediyse) hazır konu, başlık
@@ -772,7 +782,26 @@ app.post('/api/title', async (req, res) => {
 const UPLOADS_DIR = path.join(__dirname, '../uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
-const upload = multer({ dest: UPLOADS_DIR, limits: { fileSize: 25 * 1024 * 1024 } });
+// Kitaplar ve tezler 25 MB'ı rahatça aşıyor. Sınır index.html'deki
+// MAX_UPLOAD_MB ile aynı olmalı.
+const MAX_UPLOAD_MB = 200;
+const upload = multer({ dest: UPLOADS_DIR, limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024 } });
+
+// Mesaja gömülen metin bu kadarla sınırlı; daha uzun belgelerin tam metni
+// buraya yazılır ve Claude gerekli bölümleri oradan okur.
+const INLINE_CHARS = 12000;
+const TEXT_DIR = path.join(UPLOADS_DIR, 'metinler');
+if (!fs.existsSync(TEXT_DIR)) fs.mkdirSync(TEXT_DIR, { recursive: true });
+// 30 günden eski tam metinler temizlenir.
+try {
+  const sinir = Date.now() - 30 * 24 * 3600 * 1000;
+  for (const f of fs.readdirSync(TEXT_DIR)) {
+    const p = path.join(TEXT_DIR, f);
+    try { if (fs.statSync(p).mtimeMs < sinir) fs.unlinkSync(p); } catch {}
+  }
+} catch {}
+
+const TEXT_EXT = /\.(txt|md|csv)$/i;
 
 // markitdown'ı çalıştırmanın olası yolları, sırayla denenir. Kurulum onu
 // uygulamanın .venv klasörüne kurar; eski kurulumlar için `pip --user` yolları
@@ -860,10 +889,24 @@ async function runOpenDataLoaderPdf(filePath) {
   }
 }
 
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+// multer hataları (ör. dosya çok büyük) Express'in HTML hata sayfasına
+// düşmesin; arayüz JSON bekliyor ve kullanıcıya nedenini göstermeli.
+function receiveUpload(req, res, next) {
+  upload.single('file')(req, res, (err) => {
+    if (!err) return next();
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: `Dosya çok büyük (en fazla ${MAX_UPLOAD_MB} MB).` });
+    }
+    console.error('[upload] Hata:', err.message);
+    res.status(400).json({ error: 'Dosya alınamadı: ' + err.message });
+  });
+}
+
+app.post('/api/upload', receiveUpload, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Dosya yok' });
   const { path: tmpPath, originalname } = req.file;
   const isPdf = /\.pdf$/i.test(originalname);
+  const fail = (status, error) => { fs.unlink(tmpPath, () => {}); res.status(status).json({ error }); };
   try {
     let text = null;
     if (isPdf) {
@@ -871,26 +914,40 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         text = await runOpenDataLoaderPdf(tmpPath);
       } catch (e) {
         console.error('[opendataloader-pdf] Hata:', e.message);
-        fs.unlink(tmpPath, () => {});
-        return res.status(500).json({ error: 'PDF işlenemedi, Java 11+ kurulu olmalı (https://adoptium.net)' });
+        return fail(500, 'PDF işlenemedi, Java 11+ kurulu olmalı (https://adoptium.net)');
       }
-      if (!text) {
-        fs.unlink(tmpPath, () => {});
-        return res.status(500).json({ error: 'PDF işlenemedi, Java 11+ kurulu olmalı (https://adoptium.net)' });
-      }
+      // Dönüştürme çalıştı ama metin yok: taranmış (görüntü) PDF.
+      if (!text) return fail(422, "PDF'ten metin çıkarılamadı. Taranmış (görüntü) bir PDF olabilir; metni seçilebilen bir PDF yükleyin.");
     } else {
       text = await runMarkitdown(tmpPath);
-      if (!text) {
-        // markitdown başarısızsa ham metin olarak oku (txt/md gibi dosyalar için)
-        try { text = fs.readFileSync(tmpPath, 'utf8').slice(0, 12000); } catch { text = null; }
+      // Ham okuma yalnızca düz metin dosyaları için; DOCX/PPTX/XLSX'i UTF-8
+      // diye okumak anlamsız karakterler üretir.
+      if (!text && TEXT_EXT.test(originalname)) {
+        try { text = fs.readFileSync(tmpPath, 'utf8'); } catch { text = null; }
       }
+      if (!text) return fail(500, 'Dosya okunamadı. MarkItDown kurulu olmayabilir; kurulumu yeniden çalıştırın.');
     }
     fs.unlink(tmpPath, () => {});
-    if (!text) return res.status(500).json({ error: 'Dosya işlenemedi' });
-    res.json({ filename: originalname, content: text.slice(0, 12000) });
+    text = text.trim();
+
+    if (text.length <= INLINE_CHARS) {
+      return res.json({ filename: originalname, content: text, totalChars: text.length });
+    }
+    // Uzun belge: başı mesaja gömülür, tamamı Claude'un okuyacağı dosyaya.
+    const base = path.basename(originalname, path.extname(originalname))
+      .replace(/[^\p{L}\p{N}._-]+/gu, '_').slice(0, 60) || 'belge';
+    const fullTextPath = path.join(TEXT_DIR, `${uuidv4().slice(0, 8)}-${base}.md`);
+    fs.writeFileSync(fullTextPath, text, 'utf8');
+    console.log(`[upload] ${originalname}: ${text.length} karakter → ${fullTextPath}`);
+    res.json({
+      filename: originalname,
+      content: text.slice(0, INLINE_CHARS),
+      totalChars: text.length,
+      truncated: true,
+      fullTextPath,
+    });
   } catch (e) {
-    try { fs.unlink(tmpPath, () => {}); } catch {}
-    res.status(500).json({ error: e.message });
+    fail(500, e.message);
   }
 });
 
@@ -930,7 +987,10 @@ YAPMAN GEREKENLER (sadece format):
 METİN:
 ${text.slice(0, 12000)}`;
 
-    const formatted = await runClaude(formatPrompt);
+    // Biçimlendirme isteği metnin yalnızca ilk 12.000 karakterini içeriyor;
+    // daha uzun metinlerde sonucu kullanmak belgenin sonunu siler. Bu yüzden
+    // uzun metinler biçimlendirilmeden, olduğu gibi dönüştürülür.
+    const formatted = text.length <= 12000 ? await runClaude(formatPrompt) : '';
     const finalText = formatted || text;
 
     // 2. Markdown → HTML
