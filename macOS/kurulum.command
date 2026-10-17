@@ -121,12 +121,12 @@ fi
 # Homebrew Python'u `pip install --user`'ı reddeder (PEP 668). MarkItDown
 # uygulamaya özel bir sanal ortama (.venv) kurulur.
 if [ -n "$PY" ]; then
-  info "MarkItDown kuruluyor (dosya işleme için, birkaç dakika sürebilir)..."
+  info "MarkItDown ve pikepdf kuruluyor (dosya işleme ve PDF onarımı için, birkaç dakika sürebilir)..."
   VENV="$SCRIPT_DIR/.venv"
   md_install() {
     [ -x "$VENV/bin/python" ] &&
       "$VENV/bin/python" -m pip install --upgrade --disable-pip-version-check \
-        'markitdown[pdf,docx,pptx,xlsx]' </dev/null
+        'markitdown[pdf,docx,pptx,xlsx]' pikepdf </dev/null
   }
   [ -x "$VENV/bin/python" ] || "$PY" -m venv "$VENV"
   # Önceki yarım bir denemeden kalan bozuk sanal ortam: sıfırdan oluşturulur.

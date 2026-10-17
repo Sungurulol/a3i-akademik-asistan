@@ -116,26 +116,26 @@ echo  [UYARI] Python kurulamadi. Word/Excel/PowerPoint dosyasi yukleme calismaya
 goto PY_DONE
 :PY_OK
 echo  Python hazir.
-echo  MarkItDown kuruluyor (dosya isleme icin, birkac dakika surebilir)...
+echo  MarkItDown ve pikepdf kuruluyor (dosya isleme ve PDF onarimi icin, birkac dakika surebilir)...
 :: Uygulamaya ozel sanal ortam: kullanici profilinden ve PATH'ten bagimsiz.
 :: --quiet kullanilmaz: indirme suruyor mu gorunsun, donmus sanilmasin.
 set "VENV_PY=%SCRIPT_DIR%.venv\Scripts\python.exe"
 if not exist "%VENV_PY%" %PY% -m venv "%SCRIPT_DIR%.venv"
 if not exist "%VENV_PY%" goto MD_USER
-"%VENV_PY%" -m pip install --upgrade --disable-pip-version-check "markitdown[pdf,docx,pptx,xlsx]" <nul
+"%VENV_PY%" -m pip install --upgrade --disable-pip-version-check "markitdown[pdf,docx,pptx,xlsx]" pikepdf <nul
 if not errorlevel 1 goto MD_OK
 :: Onceki yarim bir denemeden kalan bozuk sanal ortam: sifirdan olusturulur.
 echo  Sanal ortam yeniden olusturuluyor...
 %PY% -m venv --clear "%SCRIPT_DIR%.venv"
 if not exist "%VENV_PY%" goto MD_USER
-"%VENV_PY%" -m pip install --upgrade --disable-pip-version-check "markitdown[pdf,docx,pptx,xlsx]" <nul
+"%VENV_PY%" -m pip install --upgrade --disable-pip-version-check "markitdown[pdf,docx,pptx,xlsx]" pikepdf <nul
 if errorlevel 1 goto MD_USER
 :MD_OK
 echo  MarkItDown hazir.
 goto PY_DONE
 :MD_USER
 :: Sanal ortam olmazsa kullanici klasorune kurulur.
-%PY% -m pip install --user --upgrade --disable-pip-version-check --no-warn-script-location "markitdown[pdf,docx,pptx,xlsx]" <nul
+%PY% -m pip install --user --upgrade --disable-pip-version-check --no-warn-script-location "markitdown[pdf,docx,pptx,xlsx]" pikepdf <nul
 if errorlevel 1 (
   echo  [UYARI] MarkItDown kurulamadi. Word/Excel/PowerPoint dosyasi yukleme calismayabilir.
 ) else (

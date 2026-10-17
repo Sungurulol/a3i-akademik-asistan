@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-3.0.8-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-3.1.0-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -45,7 +45,7 @@ Before starting a long task, A³I asks a few multiple-choice questions so the re
 | 🧠 | **Model & Effort Control** | Switch between Opus 5 / Sonnet 5 / Haiku 4.5 and thinking effort mid-conversation; the session is resumed, so context is kept |
 | 📄 | **DOCX · PDF · PPTX Export** | LaTeX-quality academic formatting, content untouched — and any message can be turned into a slide deck |
 | 📁 | **Files Pane** | Every file the assistant produces is kept and downloadable from the sidebar, colour-coded by type |
-| 📎 | **Smart File Processing** | PDFs are parsed by [opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf) (#1 in extraction benchmarks); DOCX/PPTX/XLSX/CSV/TXT/MD via MarkItDown. Up to 200 MB per file; long documents such as books are fully available to Claude. Drag & drop supported |
+| 📎 | **Smart File Processing** | PDFs are parsed by [opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf) (#1 in extraction benchmarks); non-conforming PDFs are repaired automatically first. DOCX/PPTX/XLSX/CSV/TXT/MD via MarkItDown. Up to 200 MB per file; long documents such as books are fully available to Claude. Drag & drop supported |
 | 💬 | **Live Streaming** | Real-time token streaming with a floating activity indicator that never shifts the page |
 | 💾 | **Local Memory** | Conversations saved to `Chats/`, with pinning and full-text search across titles and messages |
 | 🌗 | **Light & Dark Theme** | Adaptive interface built on Apple's design language, with spring-based motion |
@@ -88,8 +88,8 @@ Without Git you can use **Code → Download ZIP** on GitHub; on first launch A³
 > **Requirements:** A [Claude](https://claude.ai) account is required. Claude Pro or Max plan is recommended.
 
 The installer automatically sets up:
-- **macOS:** Homebrew · Git · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code
-- **Windows:** Git · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code — via the built-in **winget** (Chocolatey if winget is missing)
+- **macOS:** Homebrew · Git · Node.js · Python · MarkItDown · pikepdf · Java (Temurin) · Claude Code
+- **Windows:** Git · Node.js · Python · MarkItDown · pikepdf · Java (Temurin) · Claude Code — via the built-in **winget** (Chocolatey if winget is missing)
 
 > Java 11+ is required by the PDF parser and is installed for you — no manual step.
 
@@ -136,6 +136,8 @@ To stop it, close the window (or press `Ctrl+C` on macOS).
 └─────────────────────────────────────────────┘
 
 PDF                           → opendataloader-pdf (Java) ─┐
+  if rejected → repair with pikepdf → opendataloader-pdf   │
+  still failing → MarkItDown                                │
 DOCX / PPTX / XLSX / TXT / MD → MarkItDown (.venv) ─────────┴→ clean Markdown → injected into prompt
 
 Generated files → downloads/ → Files pane in the sidebar
@@ -149,7 +151,7 @@ PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 | | macOS | Windows |
 |---|---|---|
 | OS | macOS 12+ | Windows 10/11 |
-| Auto-installed | Homebrew, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code | winget (or Chocolatey), Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code |
+| Auto-installed | Homebrew, Git, Node.js 18+, Python 3.10+, MarkItDown, pikepdf, Java 11+, Claude Code | winget (or Chocolatey), Git, Node.js 18+, Python 3.10+, MarkItDown, pikepdf, Java 11+, Claude Code |
 | For PDF export | Google Chrome | Chrome or Edge (built into Windows) |
 | Account | Claude Pro / Max | Claude Pro / Max |
 
@@ -172,6 +174,14 @@ PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 ---
 
 ## Changelog
+
+### v3.1.0
+
+**PDF repair**
+- Non-conforming PDFs are now **repaired automatically**. opendataloader-pdf is a strict parser and can reject sound books entirely over small defects produced by publishing tools. A common example is keys with spaces in the document-info dictionary (`/Universal PDF(...)`, `/codeMantra, LLC(...)`). In that case the PDF is rewritten with [pikepdf](https://github.com/pikepdf/pikepdf) (qpdf), which rebuilds the cross-reference table and drops the info dictionary. opendataloader then runs again, so heading and table structure is preserved
+- Files that still fail after repair are read with MarkItDown
+- Reading order: opendataloader → repair + opendataloader → MarkItDown
+- Setup installs pikepdf into the same `.venv` as MarkItDown; existing installs update on the next launch
 
 ### v3.0.8
 
@@ -322,7 +332,7 @@ This project is built on top of **[Academic Research Skills](https://github.com/
 
 Qualitative methodology comes from the **[grad-grounded-theory](https://github.com/asgard-ai-platform/skills)** skill (Apache-2.0), and academic presentation structure from **[academic-pptx-skill](https://github.com/Gabberflast/academic-pptx-skill)** by Gabberflast (MIT).
 
-PDF parsing is powered by **[opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf)** (Apache-2.0); other file formats by **[MarkItDown](https://github.com/microsoft/markitdown)** by Microsoft (MIT).
+PDF parsing is powered by **[opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf)** (Apache-2.0); PDF repair by **[pikepdf](https://github.com/pikepdf/pikepdf)** (MPL-2.0); other file formats by **[MarkItDown](https://github.com/microsoft/markitdown)** by Microsoft (MIT).
 
 ---
 

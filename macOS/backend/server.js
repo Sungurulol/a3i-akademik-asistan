@@ -909,6 +909,57 @@ async function runMarkitdown(filePath) {
 
 // PDF'leri opendataloader-pdf (Java tabanlı) ile markdown'a çevirir.
 // Java kurulu değilse convert() reddedilir; hata çağırana bırakılır.
+// ── PDF onarımı (pikepdf) ──────────────────────────────────────
+// opendataloader-pdf'in reddettiği PDF'ler pdf_onar.py ile yeniden yazılıp
+// tekrar denenir (ayrıntı o dosyada). pikepdf kurulumun oluşturduğu .venv'de;
+// eski kurulumlar için sistem Python'u da denenir.
+const PDF_ONAR = path.join(__dirname, 'pdf_onar.py');
+
+function pythonCandidates() {
+  const venvPy = IS_WIN
+    ? path.join(__dirname, '..', '.venv', 'Scripts', 'python.exe')
+    : path.join(__dirname, '..', '.venv', 'bin', 'python');
+  const list = [];
+  if (fs.existsSync(venvPy)) list.push({ cmd: venvPy, pre: [] });
+  if (IS_WIN) list.push({ cmd: 'python', pre: [] }, { cmd: 'py', pre: ['-3'] });
+  else list.push({ cmd: 'python3', pre: [] });
+  return list;
+}
+
+function runPdfRepair({ cmd, pre }, src, dst) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = v => { if (!settled) { settled = true; clearTimeout(t); resolve(v); } };
+    let proc;
+    try {
+      // stdin kapalı: WindowsApps python.exe kısayolu girdi bekleyip asılı kalmasın.
+      proc = spawn(cmd, [...pre, PDF_ONAR, src, dst], {
+        windowsHide: true,
+        stdio: ['ignore', 'ignore', 'pipe'],
+        env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' },
+      });
+    } catch { return resolve(false); }
+    let err = '';
+    proc.stderr.on('data', d => err += d);
+    proc.on('close', code => {
+      if (code !== 0 && err.trim()) console.error(`[pdf-onarım] ${cmd}: ${err.trim().split('\n').pop()}`);
+      done(code === 0 && fs.existsSync(dst));
+    });
+    proc.on('error', () => done(false));
+    const t = setTimeout(() => { try { proc.kill(); } catch {} done(false); }, 120000);
+  });
+}
+
+// Onarılmış kopyanın yolunu döner; onarılamazsa null.
+async function repairPdf(src) {
+  const dst = path.join(UPLOADS_DIR, `${uuidv4()}-onarim.pdf`);
+  for (const c of pythonCandidates()) {
+    if (await runPdfRepair(c, src, dst)) return dst;
+  }
+  fs.unlink(dst, () => {});
+  return null;
+}
+
 async function runOpenDataLoaderPdf(filePath) {
   const outputDir = path.join(UPLOADS_DIR, 'odl-' + uuidv4().slice(0, 8));
   fs.mkdirSync(outputDir, { recursive: true });
@@ -944,16 +995,33 @@ app.post('/api/upload', receiveUpload, async (req, res) => {
   try {
     let text = null;
     if (isPdf) {
-      // Önce opendataloader-pdf (başlık/tablo yapısını daha iyi çıkarır). Katı
-      // bir ayrıştırıcı: tek bir tuhaf nesne yüzünden bütün dosyayı
-      // reddedebiliyor ("Error while parsing object"), oysa PDF sağlam. O
-      // zaman MarkItDown'ın daha hoşgörülü PDF okuyucusu (pdfminer) denenir.
+      // 1) opendataloader-pdf: başlık/tablo yapısını en iyi çıkaran okuyucu.
+      //    Katı bir ayrıştırıcı; tek bir kuralsız nesne yüzünden sağlam bir
+      //    PDF'i bütünüyle reddedebiliyor ("Error while parsing object").
+      // 2) Reddederse PDF pikepdf ile onarılıp opendataloader tekrar denenir.
+      // 3) Yine olmazsa (ya da metin çıkmazsa) MarkItDown'ın hoşgörülü PDF
+      //    okuyucusu (pdfminer) kullanılır.
       let odlError = null;
       try {
         text = await runOpenDataLoaderPdf(tmpPath);
       } catch (e) {
         odlError = e;
         console.error('[opendataloader-pdf] Hata:', e.message);
+      }
+      // Metin çıkmadıysa (taranmış PDF) onarım işe yaramaz; yalnızca
+      // ayrıştırma hatasında denenir.
+      if (!text && odlError) {
+        const onarilmis = await repairPdf(tmpPath);
+        if (onarilmis) {
+          try {
+            text = await runOpenDataLoaderPdf(onarilmis);
+            if (text) console.log(`[upload] ${originalname}: onarıldı, opendataloader ile okundu`);
+          } catch (e) {
+            console.error('[opendataloader-pdf] Onarımdan sonra da hata:', e.message.split('\n').pop());
+          } finally {
+            fs.unlink(onarilmis, () => {});
+          }
+        }
       }
       if (!text) {
         console.log(`[upload] ${originalname}: MarkItDown ile deneniyor`);

@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![versiyon](https://img.shields.io/badge/versiyon-3.0.8-blue?style=flat-square)
+![versiyon](https://img.shields.io/badge/versiyon-3.1.0-blue?style=flat-square)
 ![lisans](https://img.shields.io/badge/lisans-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/Claude%20Code%20üzerine-kurulu-orange?style=flat-square)
@@ -45,7 +45,7 @@ Uzun bir işe başlamadan önce A³I size birkaç şıklı soru sorar; böylece 
 | 🧠 | **Model ve Çaba Kontrolü** | Opus 5 / Sonnet 5 / Haiku 4.5 ve düşünme çabası sohbet ortasında değiştirilebilir; oturum devam ettiği için bağlam korunur |
 | 📄 | **DOCX · PDF · PPTX Çıktısı** | LaTeX kalitesinde akademik format, içeriğe dokunulmadan — ve her mesaj sunuma çevrilebilir |
 | 📁 | **Dosyalar Bölümü** | Asistanın ürettiği her dosya saklanır ve kenar çubuğundan indirilir, türüne göre renklenir |
-| 📎 | **Akıllı Dosya İşleme** | PDF'ler [opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf) ile ayrıştırılır (kıyaslamalarda 1. sırada); DOCX/PPTX/XLSX/CSV/TXT/MD için MarkItDown. Dosya başına 200 MB'a kadar; kitap gibi uzun belgelerin tamamı Claude'a açılır. Sürükle-bırak destekli |
+| 📎 | **Akıllı Dosya İşleme** | PDF'ler [opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf) ile ayrıştırılır (kıyaslamalarda 1. sırada); standarda uymayan PDF'ler önce otomatik onarılır. DOCX/PPTX/XLSX/CSV/TXT/MD için MarkItDown. Dosya başına 200 MB'a kadar; kitap gibi uzun belgelerin tamamı Claude'a açılır. Sürükle-bırak destekli |
 | 💬 | **Canlı Streaming** | Token'lar üretilirken görünür; durum göstergesi yüzer, sayfayı hiç kaydırmaz |
 | 💾 | **Yerel Bellek** | Sohbetler `Chats/` klasörüne kaydedilir; sabitleme ve başlık + mesaj içeriğinde arama |
 | 🌗 | **Açık ve Karanlık Tema** | Apple tasarım diliyle kurulmuş, yay fizikli hareketleri olan uyarlanabilir arayüz |
@@ -88,8 +88,8 @@ Git kullanmıyorsanız GitHub'da **Code → Download ZIP** ile de indirebilirsin
 > **Gereksinim:** [Claude](https://claude.ai) hesabı gereklidir. Claude Pro veya Max planı önerilir.
 
 Kurulum otomatik olarak kurar:
-- **macOS:** Homebrew · Git · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code
-- **Windows:** Git · Node.js · Python · MarkItDown · Java (Temurin) · Claude Code — Windows'ta hazır gelen **winget** ile (winget yoksa Chocolatey ile)
+- **macOS:** Homebrew · Git · Node.js · Python · MarkItDown · pikepdf · Java (Temurin) · Claude Code
+- **Windows:** Git · Node.js · Python · MarkItDown · pikepdf · Java (Temurin) · Claude Code — Windows'ta hazır gelen **winget** ile (winget yoksa Chocolatey ile)
 
 > PDF ayrıştırıcısı Java 11+ gerektirir; kurulum bunu sizin için yapar, elle bir adım yok.
 
@@ -136,6 +136,8 @@ Durdurmak için pencereyi kapatın (macOS'ta `Ctrl+C` da olur).
 └─────────────────────────────────────────────┘
 
 PDF                          → opendataloader-pdf (Java) ─┐
+  reddederse → pikepdf ile onar → opendataloader-pdf      │
+  yine olmazsa → MarkItDown                                │
 DOCX / PPTX / XLSX / TXT / MD → MarkItDown (.venv) ─────────┴→ temiz Markdown → prompt'a enjekte edilir
 
 Üretilen dosyalar → downloads/ → kenar çubuğundaki Dosyalar bölümü
@@ -149,7 +151,7 @@ PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 | | macOS | Windows |
 |---|---|---|
 | İşletim Sistemi | macOS 12+ | Windows 10/11 |
-| Otomatik Kurulan | Homebrew, Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code | winget (yoksa Chocolatey), Git, Node.js 18+, Python 3.10+, MarkItDown, Java 11+, Claude Code |
+| Otomatik Kurulan | Homebrew, Git, Node.js 18+, Python 3.10+, MarkItDown, pikepdf, Java 11+, Claude Code | winget (yoksa Chocolatey), Git, Node.js 18+, Python 3.10+, MarkItDown, pikepdf, Java 11+, Claude Code |
 | PDF Çıktısı İçin | Google Chrome | Chrome veya Edge (Windows'ta hazır gelir) |
 | Hesap | Claude Pro / Max | Claude Pro / Max |
 
@@ -172,6 +174,14 @@ PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 ---
 
 ## Sürüm Notları
+
+### v3.1.0
+
+**PDF onarımı**
+- Standarda uymayan PDF'ler artık **otomatik onarılıyor**. opendataloader-pdf katı bir ayrıştırıcı ve yayıncı araçlarının ürettiği küçük kusurlar yüzünden sağlam kitapları bütünüyle reddedebiliyor. Sık rastlanan örnek: künye sözlüğüne boşluklu anahtar yazılması (`/Universal PDF(...)`, `/codeMantra, LLC(...)`). Bu durumda PDF [pikepdf](https://github.com/pikepdf/pikepdf) (qpdf) ile yeniden yazılıyor, yani iç dizin baştan oluşturuluyor ve künye atılıyor. Ardından opendataloader yeniden deneniyor; böylece başlık ve tablo yapısı korunuyor
+- Onarımdan sonra bile açılmayan dosyalar MarkItDown ile okunuyor
+- Okuma sırası: opendataloader → onarım + opendataloader → MarkItDown
+- Kurulum pikepdf'i MarkItDown ile aynı `.venv`'e kuruyor; mevcut kurulumlar ilk başlatmada güncelleniyor
 
 ### v3.0.8
 
@@ -322,7 +332,7 @@ Bu proje, [Cheng-I Wu](https://github.com/Imbad0202) tarafından geliştirilen v
 
 Nitel metodoloji **[grad-grounded-theory](https://github.com/asgard-ai-platform/skills)** skill'inden (Apache-2.0), akademik sunum yapısı ise Gabberflast tarafından geliştirilen **[academic-pptx-skill](https://github.com/Gabberflast/academic-pptx-skill)** skill'inden (MIT) gelmektedir.
 
-PDF ayrıştırma **[opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf)** (Apache-2.0), diğer dosya biçimleri ise Microsoft tarafından geliştirilen **[MarkItDown](https://github.com/microsoft/markitdown)** (MIT) ile yapılmaktadır.
+PDF ayrıştırma **[opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf)** (Apache-2.0), PDF onarımı **[pikepdf](https://github.com/pikepdf/pikepdf)** (MPL-2.0), diğer dosya biçimleri ise Microsoft tarafından geliştirilen **[MarkItDown](https://github.com/microsoft/markitdown)** (MIT) ile yapılmaktadır.
 
 ---
 
