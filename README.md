@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![version](https://img.shields.io/badge/version-3.0.6-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-3.0.7-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/built%20on-Claude%20Code-orange?style=flat-square)
@@ -172,6 +172,13 @@ PDF export      → Chrome (Edge on Windows if Chrome is missing), from HTML
 ---
 
 ## Changelog
+
+### v3.0.7
+
+**File uploads**
+- **PDF uploads never worked** (macOS and Windows): uploads were saved under an extensionless temp name and the PDF converter rejected them as "not a PDF file". Users saw "Java 11+ required" even with Java installed. Files are now processed with their original extension
+- The PDF error now states the real cause: the Java warning only when Java is actually missing, otherwise "the file may be corrupt or password-protected"
+- File names with Turkish characters (e.g. "Şehir Tarihi.pdf") are no longer garbled
 
 ### v3.0.6
 

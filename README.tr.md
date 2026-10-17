@@ -2,7 +2,7 @@
 
 # A³I — Akademik Asistan AI
 
-![versiyon](https://img.shields.io/badge/versiyon-3.0.6-blue?style=flat-square)
+![versiyon](https://img.shields.io/badge/versiyon-3.0.7-blue?style=flat-square)
 ![lisans](https://img.shields.io/badge/lisans-CC%20BY--NC%204.0-gray?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgray?style=flat-square)
 ![claude](https://img.shields.io/badge/Claude%20Code%20üzerine-kurulu-orange?style=flat-square)
@@ -172,6 +172,13 @@ PDF çıktısı       → Chrome (Windows'ta yoksa Edge) ile HTML'den
 ---
 
 ## Sürüm Notları
+
+### v3.0.7
+
+**Dosya yükleme**
+- **PDF yükleme hiç çalışmıyordu** (macOS ve Windows): yüklenen dosya uzantısız geçici bir adla kaydediliyor, PDF dönüştürücüsü de uzantısız dosyayı "PDF değil" diye reddediyordu. Kullanıcı Java kurmuş olsa bile "Java 11+ kurulu olmalı" hatası görüyordu. Dosyalar artık kendi uzantılarıyla işleniyor
+- PDF hatası artık gerçek nedeni söylüyor: Java gerçekten yoksa Java uyarısı, varsa "dosya bozuk ya da parola korumalı olabilir"
+- Türkçe karakterli dosya adları (ör. "Şehir Tarihi.pdf") bozuk görünmüyor
 
 ### v3.0.6
 

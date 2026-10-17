@@ -785,7 +785,33 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 // Kitaplar ve tezler 25 MB'ı rahatça aşıyor. Sınır index.html'deki
 // MAX_UPLOAD_MB ile aynı olmalı.
 const MAX_UPLOAD_MB = 200;
-const upload = multer({ dest: UPLOADS_DIR, limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024 } });
+// Geçici dosya orijinal uzantısıyla kaydedilir: opendataloader-pdf uzantısız
+// dosyayı "is not a PDF file" diye reddediyor (multer'ın varsayılanı
+// uzantısız rastgele bir ad).
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOADS_DIR,
+    filename: (req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname).toLowerCase()),
+  }),
+  limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024 },
+});
+
+// multer dosya adını latin1 olarak çözer; Türkçe karakterli adlar
+// ("Şehir Tarihi.pdf") bozuk görünmesin diye UTF-8'e çevrilir.
+function decodeUploadName(name) {
+  try {
+    const utf8 = Buffer.from(name, 'latin1').toString('utf8');
+    return utf8.includes('\uFFFD') ? name : utf8;
+  } catch { return name; }
+}
+
+// PDF dönüştürme hatasının nedeni gerçekten Java eksikliği mi?
+function javaAvailable() {
+  try {
+    require('child_process').execFileSync('java', ['-version'], { stdio: 'ignore', windowsHide: true, timeout: 15000 });
+    return true;
+  } catch { return false; }
+}
 
 // Mesaja gömülen metin bu kadarla sınırlı; daha uzun belgelerin tam metni
 // buraya yazılır ve Claude gerekli bölümleri oradan okur.
@@ -904,7 +930,8 @@ function receiveUpload(req, res, next) {
 
 app.post('/api/upload', receiveUpload, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Dosya yok' });
-  const { path: tmpPath, originalname } = req.file;
+  const tmpPath = req.file.path;
+  const originalname = decodeUploadName(req.file.originalname);
   const isPdf = /\.pdf$/i.test(originalname);
   const fail = (status, error) => { fs.unlink(tmpPath, () => {}); res.status(status).json({ error }); };
   try {
@@ -914,7 +941,9 @@ app.post('/api/upload', receiveUpload, async (req, res) => {
         text = await runOpenDataLoaderPdf(tmpPath);
       } catch (e) {
         console.error('[opendataloader-pdf] Hata:', e.message);
-        return fail(500, 'PDF işlenemedi, Java 11+ kurulu olmalı (https://adoptium.net)');
+        if (!javaAvailable()) return fail(500, 'PDF işlenemedi: Java 11+ kurulu olmalı (https://adoptium.net)');
+        // Java var: sorun dosyanın kendisinde (ayrıntı yukarıda günlükte).
+        return fail(500, 'PDF işlenemedi: dosya bozuk ya da parola korumalı olabilir.');
       }
       // Dönüştürme çalıştı ama metin yok: taranmış (görüntü) PDF.
       if (!text) return fail(422, "PDF'ten metin çıkarılamadı. Taranmış (görüntü) bir PDF olabilir; metni seçilebilen bir PDF yükleyin.");
